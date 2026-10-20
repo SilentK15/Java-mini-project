@@ -1,0 +1,37 @@
+# Build and dependencies
+target/
+**/target/
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
+
+# Runtime and local storage
+uploads/
+**/uploads/
+backups/
+**/backups/
+*.log
+
+# Environment variables
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# IDE and editors
+.idea/
+**/.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Temporary archives
+tmc-complaint-frontend.zip
