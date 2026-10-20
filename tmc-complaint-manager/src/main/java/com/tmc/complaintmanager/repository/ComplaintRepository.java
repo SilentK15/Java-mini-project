@@ -14,20 +14,31 @@ import java.util.List;
 import java.util.Collection;
 
 public interface ComplaintRepository extends JpaRepository<Complaint, Long>, JpaSpecificationExecutor<Complaint> {
-    boolean existsByComplaintNumber(String complaintNumber);
-    Optional<Complaint> findByComplaintNumberIgnoreCase(String complaintNumber);
+    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM Complaint c " +
+           "WHERE LOWER(c.complaintNumber) = LOWER(:complaintNumber) OR (c.legacyComplaintNumber IS NOT NULL AND LOWER(c.legacyComplaintNumber) = LOWER(:complaintNumber))")
+    boolean existsByComplaintNumber(@Param("complaintNumber") String complaintNumber);
+
+    @Query("SELECT c FROM Complaint c WHERE LOWER(c.complaintNumber) = LOWER(:complaintNumber) " +
+           "OR (c.legacyComplaintNumber IS NOT NULL AND LOWER(c.legacyComplaintNumber) = LOWER(:complaintNumber))")
+    Optional<Complaint> findByComplaintNumberIgnoreCase(@Param("complaintNumber") String complaintNumber);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select complaint from Complaint complaint where complaint.id = :id")
     Optional<Complaint> findByIdForUpdate(@Param("id") Long id);
+
     Optional<Complaint> findBySubmissionKey(String submissionKey);
+
     List<Complaint> findTop100ByCategoryAndStatusInAndCreatedAtAfterOrderByCreatedAtDesc(
             String category, Collection<String> statuses, LocalDateTime createdAfter);
+
     long countByStatus(String status);
     long countByDepartment(Department department);
     long countByDepartmentAndStatus(Department department, String status);
+
     @Query("select complaint.department, complaint.status, count(complaint) from Complaint complaint " +
             "group by complaint.department, complaint.status")
     List<Object[]> countByDepartmentAndStatusGrouped();
+
     long countBySubmittedByIgnoreCase(String submittedBy);
     long countBySubmittedByIgnoreCaseAndStatus(String submittedBy, String status);
     long countByStatusAndCreatedAtBefore(String status, LocalDateTime cutoff);

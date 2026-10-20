@@ -24,6 +24,79 @@ const getSessionStorage = () => {
   try { return window.sessionStorage; } catch { return null; }
 };
 
+const COMMON_PASSWORDS = new Set([
+  "password", "password123", "password1234", "1234567890", "123456789012",
+  "qwertyuiop", "administrator", "admin12345", "welcome123", "letmein123",
+  "iloveyou123", "changeme123", "civicconnect", "civicconnect123"
+]);
+
+function evaluatePassword(pwd) {
+  if (!pwd) return { score: 0, label: "Enter a password", checks: { length: false, notCommon: true, bytes: true } };
+  const bytes = new TextEncoder().encode(pwd).length;
+  const isCommon = COMMON_PASSWORDS.has(pwd.toLowerCase().trim());
+  const checks = {
+    length: pwd.length >= 10,
+    notCommon: !isCommon,
+    bytes: bytes <= 72,
+    hasUpperLower: /[a-z]/.test(pwd) && /[A-Z]/.test(pwd),
+    hasNumberOrSymbol: /[\d\W_]/.test(pwd),
+  };
+  let score = 0;
+  if (checks.length) score += 1;
+  if (checks.notCommon && checks.bytes) score += 1;
+  if (checks.hasUpperLower) score += 1;
+  if (checks.hasNumberOrSymbol) score += 1;
+  if (pwd.length >= 14) score += 1;
+
+  let label = "Weak";
+  let color = "#ef4444";
+  if (score >= 4) {
+    label = "Strong";
+    color = "#10b981";
+  } else if (score >= 3) {
+    label = "Good";
+    color = "#3b82f6";
+  } else if (score >= 2) {
+    label = "Fair";
+    color = "#f59e0b";
+  }
+  return { score, label, color, checks };
+}
+
+function PasswordStrengthMeter({ password }) {
+  const result = evaluatePassword(password);
+  if (!password) {
+    return (
+      <div className="password-strength-meter" style={{ marginTop: "6px", fontSize: "0.8rem", color: "#6b7280" }}>
+        <span>Minimum 10 characters required</span>
+      </div>
+    );
+  }
+  const pct = Math.min(100, Math.max(10, result.score * 20));
+  return (
+    <div className="password-strength-meter" style={{ marginTop: "8px" }} aria-live="polite">
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", marginBottom: "4px" }}>
+        <span>Strength: <strong style={{ color: result.color }}>{result.label}</strong></span>
+        <span>{result.checks.bytes ? `${password.length} chars` : "Exceeds 72 bytes"}</span>
+      </div>
+      <div style={{ height: "4px", backgroundColor: "#e5e7eb", borderRadius: "2px", overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", backgroundColor: result.color, transition: "width 0.3s ease" }} />
+      </div>
+      <ul style={{ margin: "6px 0 0 0", padding: "0 0 0 16px", fontSize: "0.75rem", color: "#6b7280" }}>
+        <li style={{ color: result.checks.length ? "#059669" : "#dc2626" }}>
+          {result.checks.length ? "✓" : "✗"} At least 10 characters
+        </li>
+        <li style={{ color: result.checks.notCommon ? "#059669" : "#dc2626" }}>
+          {result.checks.notCommon ? "✓" : "✗"} Not a common password
+        </li>
+        <li style={{ color: result.checks.bytes ? "#059669" : "#dc2626" }}>
+          {result.checks.bytes ? "✓" : "✗"} Max 72 bytes
+        </li>
+      </ul>
+    </div>
+  );
+}
+
 const RESOLUTION_PRESETS = {
   en: {
     GARBAGE: [
@@ -393,6 +466,21 @@ function App() {
   const handleAuthSubmit = async (event) => {
     event.preventDefault();
     setMessage("");
+    if (authMode === "register") {
+      const evaluation = evaluatePassword(authForm.password);
+      if (!evaluation.checks.length) {
+        setMessage("Password must be at least 10 characters long.");
+        return;
+      }
+      if (!evaluation.checks.notCommon) {
+        setMessage("This password is too common and easily guessed.");
+        return;
+      }
+      if (!evaluation.checks.bytes) {
+        setMessage("Password must use 72 UTF-8 bytes or fewer.");
+        return;
+      }
+    }
     try {
       const response = await apiRequest(`${AUTH_URL}/${authMode}`, {
         method: "POST",
@@ -1199,7 +1287,19 @@ function App() {
             <form onSubmit={handleAuthSubmit}>
               {authMode === "register" && <div className="form-group"><label htmlFor="auth-name">{authCopy.fullName}</label><input id="auth-name" required maxLength="100" value={authForm.name} onChange={(event) => setAuthForm({ ...authForm, name: event.target.value })} /></div>}
               <div className="form-group"><label htmlFor="auth-email">{authCopy.email}</label><input id="auth-email" type="email" required maxLength="190" autoComplete="username" value={authForm.email} onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })} /></div>
-              <div className="form-group"><label htmlFor="auth-password">{authCopy.password}</label><input id="auth-password" type="password" required minLength="8" autoComplete={authMode === "login" ? "current-password" : "new-password"} value={authForm.password} onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })} /></div>
+              <div className="form-group">
+                <label htmlFor="auth-password">{authCopy.password}</label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  required
+                  minLength={authMode === "register" ? 10 : 1}
+                  autoComplete={authMode === "login" ? "current-password" : "new-password"}
+                  value={authForm.password}
+                  onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })}
+                />
+                {authMode === "register" && <PasswordStrengthMeter password={authForm.password} />}
+              </div>
               <button className="submit-button" type="submit">{authMode === "login" ? authCopy.signIn : authCopy.createAccount}</button>
             </form>
             <button className="text-button" onClick={() => { setMessage(""); setAuthMode(authMode === "login" ? "register" : "login"); }}>

@@ -134,7 +134,7 @@ class ComplaintServiceTests {
     }
 
     @Test
-    void createsLongUniqueReferenceAndInitialStatusHistory() {
+    void createsHumanReadableComplaintNumberAndInitialStatusHistory() {
         ComplaintRepository complaints = mock(ComplaintRepository.class);
         ComplaintStatusHistoryRepository history = mock(ComplaintStatusHistoryRepository.class);
         when(complaints.existsByComplaintNumber(any())).thenReturn(false);
@@ -148,8 +148,9 @@ class ComplaintServiceTests {
 
         Complaint created = new ComplaintService(complaints, history, events).createComplaint(complaint);
 
-        assertEquals(36, created.getComplaintNumber().length());
-        assertTrue(created.getComplaintNumber().startsWith("TMC-"));
+        // New format is TMC-YYYY-NNNNNN (15 chars) instead of UUID (36 chars)
+        assertTrue(created.getComplaintNumber().matches("^TMC-\\d{4}-\\d{6}$"),
+                "Expected TMC-YYYY-NNNNNN format but got: " + created.getComplaintNumber());
         assertEquals("A broken road", created.getTitle());
         assertEquals("SUBMITTED", created.getStatus());
         verify(history).save(argThat(event -> event.getComplaintId().equals(17L)

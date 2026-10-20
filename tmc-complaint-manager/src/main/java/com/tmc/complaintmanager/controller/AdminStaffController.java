@@ -51,9 +51,7 @@ public class AdminStaffController {
     @Transactional
     public StaffAccountResponse createStaff(@Valid @RequestBody CreateStaffRequest body,
                                              @AuthenticationPrincipal AppUser admin) {
-        if (!PasswordPolicy.fitsBcrypt(body.password())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must use 72 UTF-8 bytes or fewer");
-        }
+        PasswordPolicy.validate(body.password());
         if (body.role() == null || !body.role().isDepartmentEmployee()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a department employee role");
         }
@@ -140,7 +138,7 @@ public class AdminStaffController {
 
     public record CreateStaffRequest(@NotBlank @Size(max = 100) String name,
                                      @NotBlank @Email @Size(max = 190) String email,
-                                     @NotBlank @Size(min = 8, max = 72) String password,
+                                     @NotBlank @Size(min = 10, max = 72) String password,
                                      @NotNull Department department, @NotNull UserRole role) {
         public CreateStaffRequest(String name, String email, String password, Department department) {
             this(name, email, password, department, UserRole.STAFF);

@@ -27,6 +27,9 @@ public class Complaint {
     @Column(nullable = false, unique = true)
     private String complaintNumber;
 
+    @Column(name = "legacy_complaint_number")
+    private String legacyComplaintNumber;
+
     @Column(length = 36, unique = true)
     private String submissionKey;
 

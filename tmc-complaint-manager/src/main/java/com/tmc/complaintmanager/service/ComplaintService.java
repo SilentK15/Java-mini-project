@@ -22,7 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 @Service
 public class ComplaintService {
@@ -31,17 +30,24 @@ public class ComplaintService {
     private final ComplaintRepository complaintRepository;
     private final ComplaintStatusHistoryRepository historyRepository;
     private final ApplicationEventPublisher events;
+    private final ComplaintNumberGenerator numberGenerator;
 
     public ComplaintService(ComplaintRepository complaintRepository, ComplaintStatusHistoryRepository historyRepository) {
-        this(complaintRepository, historyRepository, event -> { });
+        this(complaintRepository, historyRepository, event -> { }, null);
+    }
+
+    public ComplaintService(ComplaintRepository complaintRepository, ComplaintStatusHistoryRepository historyRepository,
+                            ApplicationEventPublisher events) {
+        this(complaintRepository, historyRepository, events, null);
     }
 
     @Autowired
     public ComplaintService(ComplaintRepository complaintRepository, ComplaintStatusHistoryRepository historyRepository,
-                            ApplicationEventPublisher events) {
+                            ApplicationEventPublisher events, ComplaintNumberGenerator numberGenerator) {
         this.complaintRepository = complaintRepository;
         this.historyRepository = historyRepository;
         this.events = events;
+        this.numberGenerator = numberGenerator;
     }
 
     @Transactional
@@ -71,13 +77,12 @@ public class ComplaintService {
         complaint.setFeedbackAt(null);
         complaint.setDepartment(routeDepartment(complaint.getCategory()));
         String complaintNumber;
-        int attempts = 0;
-        do {
-            complaintNumber = "TMC-" + UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ROOT);
-            attempts++;
-        } while (complaintRepository.existsByComplaintNumber(complaintNumber) && attempts < 5);
-        if (complaintRepository.existsByComplaintNumber(complaintNumber)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Could not allocate a unique complaint reference");
+        if (numberGenerator != null) {
+            complaintNumber = numberGenerator.nextComplaintNumber();
+        } else {
+            int year = LocalDateTime.now().getYear();
+            long fallbackCount = complaintRepository.count() + 1;
+            complaintNumber = String.format(Locale.ROOT, "TMC-%d-%06d", year, fallbackCount);
         }
         complaint.setComplaintNumber(complaintNumber);
         complaint.setStatus("SUBMITTED");

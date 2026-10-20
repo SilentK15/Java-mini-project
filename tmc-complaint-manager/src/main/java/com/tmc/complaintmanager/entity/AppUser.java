@@ -8,6 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -41,6 +42,12 @@ public class AppUser implements UserDetails {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Column(name = "failed_attempts", nullable = false)
+    private int failedAttempts = 0;
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
     public AppUser(String name, String email, String passwordHash, UserRole role) {
         this(name, email, passwordHash, role, null);
     }
@@ -52,6 +59,7 @@ public class AppUser implements UserDetails {
         this.role = role;
         this.department = department;
         this.enabled = true;
+        this.failedAttempts = 0;
     }
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -60,7 +68,9 @@ public class AppUser implements UserDetails {
     @Override public String getPassword() { return passwordHash; }
     @Override public String getUsername() { return email; }
     @Override public boolean isAccountNonExpired() { return true; }
-    @Override public boolean isAccountNonLocked() { return true; }
+    @Override public boolean isAccountNonLocked() {
+        return lockedUntil == null || lockedUntil.isBefore(LocalDateTime.now());
+    }
     @Override public boolean isCredentialsNonExpired() { return true; }
     @Override public boolean isEnabled() { return enabled; }
 }

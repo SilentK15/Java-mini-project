@@ -1,7 +1,9 @@
 package com.tmc.complaintmanager.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,8 +13,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class ComplaintStatusHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,3 +46,4 @@ public class ComplaintStatusHistory {
         this.changedAt = changedAt;
     }
 }
+

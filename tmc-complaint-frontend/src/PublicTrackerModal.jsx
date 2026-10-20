@@ -14,7 +14,7 @@ const CATEGORY_ICONS = {
 export function PublicTrackerModal({
   complaintNumber,
   apiRoot,
-  uiCopy,
+  uiCopy = {},
   onClose,
   onNavigateAuth,
 }) {
@@ -100,7 +100,7 @@ export function PublicTrackerModal({
               <h3>Grievance Not Found</h3>
               <p>{error}</p>
               <div className="tracker-search-hint">
-                <small>Tip: Grievance IDs usually start with <code>TMC-</code> followed by uppercase alphanumeric characters.</small>
+                <small>Tip: Grievance IDs usually follow the format <code>TMC-YYYY-XXXXXX</code>.</small>
               </div>
               <button type="button" className="tracker-btn-primary" onClick={onClose}>
                 Try Another Reference #
@@ -122,24 +122,31 @@ export function PublicTrackerModal({
                       🏢 {complaint.department.replace(/_/g, " ")}
                     </span>
                   )}
+                  {complaint.priority && (
+                    <span className={`priority-badge priority-${complaint.priority.toLowerCase()}`}>
+                      {complaint.priority}
+                    </span>
+                  )}
                 </div>
                 <div className="tracker-ref-right">
                   <span className={`tracker-status-badge status-${complaint.status?.toLowerCase()}`}>
                     {complaint.status === "IN_PROGRESS"
-                      ? uiCopy.inProgress
+                      ? (uiCopy.inProgress || "In Progress")
                       : complaint.status === "RESOLVED"
-                      ? uiCopy.resolved
+                      ? (uiCopy.resolved || "Resolved")
                       : complaint.status === "REOPEN_REQUESTED"
-                      ? uiCopy.statusReopenRequested
-                      : uiCopy.submitted}
+                      ? (uiCopy.statusReopenRequested || "Reopen Requested")
+                      : (uiCopy.submitted || "Submitted")}
                   </span>
                 </div>
               </div>
 
-              {/* Title & Description */}
+              {/* Title & Approximate Location */}
               <div className="tracker-summary-card">
                 <h3 className="tracker-complaint-title">{complaint.title}</h3>
-                <p className="tracker-complaint-desc">{complaint.description}</p>
+                <div className="tracker-privacy-notice" style={{ fontSize: "0.82rem", color: "#6b7280", margin: "6px 0 12px 0" }}>
+                  <span>🔒 Redacted for public view · Detailed information restricted to authorized users</span>
+                </div>
                 <div className="tracker-meta-row">
                   <div className="tracker-meta-item">
                     <span className="tracker-meta-label">📍 {uiCopy.trackingLocationWard || "Location / Ward"}:</span>
@@ -147,7 +154,7 @@ export function PublicTrackerModal({
                   </div>
                   <div className="tracker-meta-item">
                     <span className="tracker-meta-label">📅 Lodged:</span>
-                    <span>{new Date(complaint.createdAt).toLocaleString()}</span>
+                    <span>{new Date(complaint.createdAt).toLocaleDateString()}</span>
                   </div>
                   {complaint.slaDueAt && (
                     <div className="tracker-meta-item">
@@ -189,38 +196,6 @@ export function PublicTrackerModal({
                 </div>
               </div>
 
-              {/* Evidence Gallery (Citizen Evidence + Official ATR Evidence) */}
-              {(complaint.imageUrl || complaint.resolutionImageUrl) && (
-                <div className="tracker-evidence-grid">
-                  {complaint.imageUrl && (
-                    <div className="tracker-evidence-box">
-                      <div className="evidence-header">
-                        <span>📸 {uiCopy.trackingCitizenPhoto || "Citizen Grievance Evidence"}</span>
-                      </div>
-                      <img
-                        src={`${apiRoot}${complaint.imageUrl}`}
-                        alt="Citizen uploaded evidence"
-                        className="tracker-photo-preview"
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-                  {complaint.resolutionImageUrl && (
-                    <div className="tracker-evidence-box resolved-evidence">
-                      <div className="evidence-header">
-                        <span>✅ {uiCopy.trackingResolutionPhoto || "Official Municipal ATR Photo"}</span>
-                      </div>
-                      <img
-                        src={`${apiRoot}${complaint.resolutionImageUrl}`}
-                        alt="Municipal resolution photo"
-                        className="tracker-photo-preview"
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Official Status Timeline */}
               <div className="tracker-timeline-section">
                 <h4>📋 {uiCopy.trackingTimelineTitle || "Official Action Taken & Progress Timeline"}</h4>
@@ -247,15 +222,6 @@ export function PublicTrackerModal({
                   <p className="tracker-no-updates">Grievance registered in municipal intake queue.</p>
                 )}
               </div>
-
-              {/* Citizen Rating (if resolved) */}
-              {complaint.citizenRating && (
-                <div className="tracker-rating-box">
-                  <span className="rating-label">⭐ {uiCopy.trackingCitizenRating || "Citizen Feedback"}:</span>
-                  <span className="rating-stars">{"★".repeat(complaint.citizenRating)}{"☆".repeat(5 - complaint.citizenRating)}</span>
-                  {complaint.citizenFeedback && <p className="rating-text">"{complaint.citizenFeedback}"</p>}
-                </div>
-              )}
 
               {/* Footer actions */}
               <div className="tracker-footer-actions">

@@ -4,20 +4,16 @@ import com.tmc.complaintmanager.entity.Complaint;
 import com.tmc.complaintmanager.entity.ComplaintStatusHistory;
 import com.tmc.complaintmanager.repository.ComplaintRepository;
 import com.tmc.complaintmanager.repository.ComplaintStatusHistoryRepository;
-import com.tmc.complaintmanager.service.ComplaintImageStorage;
 import com.tmc.complaintmanager.service.ComplaintSlaService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/complaints/public")
@@ -25,17 +21,14 @@ public class PublicComplaintController {
 
     private final ComplaintRepository complaintRepository;
     private final ComplaintStatusHistoryRepository historyRepository;
-    private final ComplaintImageStorage imageStorage;
     private final ComplaintSlaService slaService;
 
     @Autowired
     public PublicComplaintController(ComplaintRepository complaintRepository,
                                      ComplaintStatusHistoryRepository historyRepository,
-                                     ComplaintImageStorage imageStorage,
                                      ComplaintSlaService slaService) {
         this.complaintRepository = complaintRepository;
         this.historyRepository = historyRepository;
-        this.imageStorage = imageStorage;
         this.slaService = slaService;
     }
 
@@ -44,7 +37,7 @@ public class PublicComplaintController {
         if (complaintNumber == null || complaintNumber.trim().isEmpty() || complaintNumber.length() > 64) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid complaint number");
         }
-        String cleanNumber = complaintNumber.trim().toUpperCase();
+        String cleanNumber = complaintNumber.trim();
         Complaint complaint = complaintRepository.findByComplaintNumberIgnoreCase(cleanNumber)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No grievance found with reference ID: " + cleanNumber));
 
@@ -57,68 +50,55 @@ public class PublicComplaintController {
                 h.getChangedAt()
         )).toList();
 
-        String imageEndpoint = complaint.getImageUrl() != null
-                ? "/api/complaints/public/" + complaint.getComplaintNumber() + "/image"
-                : null;
-        String resolutionImageEndpoint = (complaint.getResolutionImageUrl() != null && List.of("RESOLVED", "REOPEN_REQUESTED").contains(complaint.getStatus()))
-                ? "/api/complaints/public/" + complaint.getComplaintNumber() + "/resolution-image"
-                : null;
-
         return new PublicTrackResponse(
                 complaint.getComplaintNumber(),
                 complaint.getTitle(),
-                complaint.getDescription(),
                 complaint.getCategory(),
-                complaint.getLocation(),
-                complaint.getPriority(),
-                complaint.getStatus(),
                 complaint.getDepartment() != null ? complaint.getDepartment().name() : null,
+                complaint.getStatus(),
+                complaint.getPriority(),
                 complaint.getCreatedAt(),
                 slaService.dueAt(complaint),
                 slaService.isOverdue(complaint, LocalDateTime.now()),
-                complaint.getCitizenRating(),
-                complaint.getCitizenFeedback(),
-                imageEndpoint,
-                resolutionImageEndpoint,
+                toApproximateLocation(complaint.getLocation()),
                 timeline
         );
     }
 
-    @GetMapping("/{complaintNumber}/image")
-    public ResponseEntity<Resource> getPublicComplaintImage(@PathVariable String complaintNumber) {
-        Complaint complaint = complaintRepository.findByComplaintNumberIgnoreCase(complaintNumber)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint not found"));
-        if (complaint.getImageUrl() == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found");
+    public static String toApproximateLocation(String location) {
+        if (location == null || location.isBlank()) {
+            return "Thane Municipal Area";
         }
-        Path path = imageStorage.resolve(complaint.getImageUrl());
-        return ResponseEntity.ok()
-                .contentType(imageStorage.mediaType(complaint.getImageUrl()))
-                .cacheControl(CacheControl.noStore())
-                .header("X-Content-Type-Options", "nosniff")
-                .body(new FileSystemResource(path));
-    }
-
-    @GetMapping("/{complaintNumber}/resolution-image")
-    public ResponseEntity<Resource> getPublicResolutionImage(@PathVariable String complaintNumber) {
-        Complaint complaint = complaintRepository.findByComplaintNumberIgnoreCase(complaintNumber)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint not found"));
-        if (complaint.getResolutionImageUrl() == null || !List.of("RESOLVED", "REOPEN_REQUESTED").contains(complaint.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resolution image not available");
+        Matcher wardMatcher = Pattern.compile("(?i)(Ward\\s*\\d+[^,]*)").matcher(location);
+        if (wardMatcher.find()) {
+            return wardMatcher.group(1).trim();
         }
-        Path path = imageStorage.resolve(complaint.getResolutionImageUrl());
-        return ResponseEntity.ok()
-                .contentType(imageStorage.mediaType(complaint.getResolutionImageUrl()))
-                .cacheControl(CacheControl.noStore())
-                .header("X-Content-Type-Options", "nosniff")
-                .body(new FileSystemResource(path));
+        String[] knownAreas = {
+            "Naupada-Kopri", "Naupada", "Kopri", "Panchpakhadi", "Wagle Estate",
+            "Vartak Nagar", "Upvan", "Yeoor", "Majiwada-Manpada", "Majiwada",
+            "Manpada", "Ghodbunder Road", "Ghodbunder", "Kalwa", "Mumbra", "Diva",
+            "Balkum", "Dhokali", "Kolshet", "Hiranandani Estate", "Kasarvadavali",
+            "Waghbil", "Brahmand", "Lokmanya Nagar", "Savarkar Nagar"
+        };
+        for (String area : knownAreas) {
+            if (Pattern.compile("(?i)\\b" + Pattern.quote(area) + "\\b").matcher(location).find()) {
+                return area + " Area";
+            }
+        }
+        String[] parts = location.split(",");
+        if (parts.length >= 2) {
+            return parts[parts.length - 2].trim() + ", " + parts[parts.length - 1].trim();
+        }
+        return location.trim();
     }
 
     private String sanitizeReason(String reason) {
         if (reason == null || reason.trim().isEmpty()) {
             return "Status update recorded";
         }
-        return reason.trim();
+        String sanitized = reason.replaceAll("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "[redacted]");
+        sanitized = sanitized.replaceAll("\\b\\d{10}\\b", "[redacted]");
+        return sanitized.trim();
     }
 
     public record PublicTimelineItem(Long id, String previousStatus, String newStatus, String reason, LocalDateTime changedAt) {}
@@ -126,19 +106,14 @@ public class PublicComplaintController {
     public record PublicTrackResponse(
             String complaintNumber,
             String title,
-            String description,
             String category,
-            String location,
-            String priority,
-            String status,
             String department,
+            String status,
+            String priority,
             LocalDateTime createdAt,
             LocalDateTime slaDueAt,
             boolean overdue,
-            Integer citizenRating,
-            String citizenFeedback,
-            String imageUrl,
-            String resolutionImageUrl,
+            String location,
             List<PublicTimelineItem> timeline
     ) {}
 }
