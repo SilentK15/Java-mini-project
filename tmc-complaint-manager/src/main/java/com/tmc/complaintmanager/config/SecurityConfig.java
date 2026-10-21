@@ -40,6 +40,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/csrf", "/api/auth/login", "/api/auth/register",
                                 "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         .requestMatchers("/api/health/live", "/api/health/ready").permitAll()
+                        .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api-docs/**").permitAll()
                         .requestMatchers("/api/complaints/public/**").permitAll()
                         .anyRequest().authenticated())
                 .securityContext(context -> context.securityContextRepository(securityContextRepository()))
@@ -60,7 +62,8 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(Arrays.stream(allowedOrigins.split(",")).map(String::trim).filter(value -> !value.isEmpty()).toList());
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("Content-Type", "X-XSRF-TOKEN", "Idempotency-Key", "X-Reset-Base-Url"));
+        config.setAllowedHeaders(Arrays.asList("Content-Type", "X-XSRF-TOKEN", "Idempotency-Key", "X-Reset-Base-Url", "X-Request-Id"));
+        config.setExposedHeaders(Arrays.asList("X-Request-Id", "X-XSRF-TOKEN"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

@@ -1,0 +1,63 @@
+name: CivicConnect CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  backend:
+    name: Backend Tests & Build (Java 21 / Spring Boot)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Grant execute permission for mvnw
+        run: chmod +x tmc-complaint-manager/mvnw
+
+      - name: Run Backend Tests
+        working-directory: tmc-complaint-manager
+        run: ./mvnw clean test
+
+      - name: Verify JAR Build
+        working-directory: tmc-complaint-manager
+        run: ./mvnw package -DskipTests
+
+  frontend:
+    name: Frontend Lint, Test & Build (React 19 / Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tmc-complaint-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: tmc-complaint-frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: tmc-complaint-frontend
+        run: npm run lint
+
+      - name: Run Unit Tests
+        working-directory: tmc-complaint-frontend
+        run: npm test
+
+      - name: Verify Production Build
+        working-directory: tmc-complaint-frontend
+        run: npm run build

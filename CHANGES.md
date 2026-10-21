@@ -36,3 +36,13 @@
 - **Public Stats API**: Added `/api/complaints/public/stats` providing aggregated counts and average resolution times for public municipal transparency.
 - **Testing**: Added unit test suites for `PasswordResetService`, `PasswordResetController`, and `PublicComplaintController.getPublicStats`. Backend test count increased to 142 passing tests.
 
+## Phase 5 — Production Readiness, Observability & CI/CD
+- **Observability & Health Checks**: Integrated Spring Boot Actuator (`spring-boot-starter-actuator`) exposing `/actuator/health`, `/actuator/info`, and `/actuator/metrics`. Configured health indicators and authorized detail exposure.
+- **API Documentation & Swagger UI**: Added `springdoc-openapi-starter-webmvc-ui` (v2.8.5) and `OpenApiConfig`, providing interactive API documentation at `/swagger-ui.html` and OpenAPI 3 schema at `/api-docs`.
+- **Distributed Request Tracing**: Created `RequestIdFilter` with highest precedence to propagate and sanitize `X-Request-Id` HTTP headers and populate SLF4J MDC (`requestId`) for end-to-end log correlation. Updated CORS configuration in `SecurityConfig` to expose and permit `X-Request-Id`.
+- **Flyway Migration Verification**: Added `FlywayMigrationValidationTests` validating that all 13 migration scripts (`V2` through `V14`) exist, are non-empty, follow strict naming conventions, and resolve cleanly via Flyway engine without parsing errors.
+- **Containerization & Orchestration**: Added root-level `docker-compose.yml` defining services for MySQL 8.0 (with healthcheck ping) and Spring Boot backend container with persistent volumes (`mysql-data`, `backend-uploads`).
+- **Continuous Integration**: Configured GitHub Actions CI workflow (`.github/workflows/ci.yml`) running automated matrix jobs for backend (JDK 21 Temurin, Maven test & package) and frontend (Node 20, npm lint, test & build).
+- **Deployment Documentation**: Created `docs/deploy.md` detailing architecture, container setup, reverse proxy configuration (Nginx SSL/HTTPS), backup strategies, and comprehensive environment variables reference.
+- **Final Test Verification**: All 147 backend JUnit tests passing; all 15 frontend tests passing with zero ESLint errors and successful production build.
+
