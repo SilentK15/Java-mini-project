@@ -37,7 +37,8 @@ public class SecurityConfig {
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/csrf", "/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/api/auth/csrf", "/api/auth/login", "/api/auth/register",
+                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         .requestMatchers("/api/health/live", "/api/health/ready").permitAll()
                         .requestMatchers("/api/complaints/public/**").permitAll()
                         .anyRequest().authenticated())
@@ -59,7 +60,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(Arrays.stream(allowedOrigins.split(",")).map(String::trim).filter(value -> !value.isEmpty()).toList());
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("Content-Type", "X-XSRF-TOKEN", "Idempotency-Key"));
+        config.setAllowedHeaders(Arrays.asList("Content-Type", "X-XSRF-TOKEN", "Idempotency-Key", "X-Reset-Base-Url"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

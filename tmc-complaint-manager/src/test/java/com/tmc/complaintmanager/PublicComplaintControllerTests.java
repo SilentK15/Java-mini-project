@@ -103,4 +103,31 @@ class PublicComplaintControllerTests {
 
         assertEquals(404, exception.getStatusCode().value());
     }
+
+    @Test
+    void returnsPublicStatsAccurately() {
+        ComplaintRepository complaintRepo = mock(ComplaintRepository.class);
+        ComplaintStatusHistoryRepository historyRepo = mock(ComplaintStatusHistoryRepository.class);
+        ComplaintSlaService slaService = mock(ComplaintSlaService.class);
+
+        when(complaintRepo.count()).thenReturn(10L);
+        when(complaintRepo.countByStatus("RESOLVED")).thenReturn(5L);
+        when(complaintRepo.countByStatus("IN_PROGRESS")).thenReturn(3L);
+        when(complaintRepo.countByStatus("SUBMITTED")).thenReturn(2L);
+
+        Complaint c1 = new Complaint();
+        c1.setCreatedAt(LocalDateTime.now().minusHours(10));
+        c1.setStatusChangedAt(LocalDateTime.now().minusHours(2)); // took 8h
+
+        when(complaintRepo.findByStatus("RESOLVED")).thenReturn(List.of(c1));
+
+        PublicComplaintController controller = new PublicComplaintController(complaintRepo, historyRepo, slaService);
+        PublicComplaintController.PublicStatsResponse stats = controller.getPublicStats();
+
+        assertEquals(10L, stats.totalComplaints());
+        assertEquals(5L, stats.resolvedComplaints());
+        assertEquals(3L, stats.inProgressComplaints());
+        assertEquals(2L, stats.pendingComplaints());
+        assertEquals(8.0, stats.averageResolutionHours());
+    }
 }

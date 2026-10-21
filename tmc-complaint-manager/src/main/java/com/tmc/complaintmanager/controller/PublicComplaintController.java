@@ -92,6 +92,35 @@ public class PublicComplaintController {
         return location.trim();
     }
 
+    @GetMapping("/stats")
+    public PublicStatsResponse getPublicStats() {
+        long total = complaintRepository.count();
+        long resolved = complaintRepository.countByStatus("RESOLVED");
+        long inProgress = complaintRepository.countByStatus("IN_PROGRESS");
+        long pending = complaintRepository.countByStatus("SUBMITTED");
+
+        List<Complaint> resolvedList = complaintRepository.findByStatus("RESOLVED");
+        double avgHours = 0.0;
+        if (!resolvedList.isEmpty()) {
+            double totalHours = 0.0;
+            int count = 0;
+            for (Complaint c : resolvedList) {
+                if (c.getCreatedAt() != null && c.getStatusChangedAt() != null) {
+                    long minutes = java.time.Duration.between(c.getCreatedAt(), c.getStatusChangedAt()).toMinutes();
+                    if (minutes > 0) {
+                        totalHours += minutes / 60.0;
+                        count++;
+                    }
+                }
+            }
+            if (count > 0) {
+                avgHours = Math.round((totalHours / count) * 10.0) / 10.0;
+            }
+        }
+
+        return new PublicStatsResponse(total, resolved, inProgress, pending, avgHours);
+    }
+
     private String sanitizeReason(String reason) {
         if (reason == null || reason.trim().isEmpty()) {
             return "Status update recorded";
@@ -102,6 +131,14 @@ public class PublicComplaintController {
     }
 
     public record PublicTimelineItem(Long id, String previousStatus, String newStatus, String reason, LocalDateTime changedAt) {}
+
+    public record PublicStatsResponse(
+            long totalComplaints,
+            long resolvedComplaints,
+            long inProgressComplaints,
+            long pendingComplaints,
+            double averageResolutionHours
+    ) {}
 
     public record PublicTrackResponse(
             String complaintNumber,

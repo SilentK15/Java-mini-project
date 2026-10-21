@@ -31,6 +31,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long>, Jpa
     List<Complaint> findTop100ByCategoryAndStatusInAndCreatedAtAfterOrderByCreatedAtDesc(
             String category, Collection<String> statuses, LocalDateTime createdAfter);
 
+    List<Complaint> findByStatus(String status);
     long countByStatus(String status);
     long countByDepartment(Department department);
     long countByDepartmentAndStatus(Department department, String status);
