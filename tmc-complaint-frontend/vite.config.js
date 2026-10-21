@@ -8,4 +8,10 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    setupFiles: './src/test/setup.js',
+    include: ['src/test/**/*.test.{js,jsx}'],
+  },
 })
