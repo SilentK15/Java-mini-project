@@ -6,8 +6,21 @@ import { PasswordStrength } from "../components/PasswordStrength.jsx";
 import { evaluatePassword } from "../utils/password.js";
 import { UserPlus, ArrowLeft, Shield, Users, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
-const DEPARTMENTS = ["PUBLIC_WORKS", "WATER_SUPPLY", "SOLID_WASTE", "ELECTRICAL", "DRAINAGE", "GENERAL_ADMIN"];
-const ROLES = ["FIELD_STAFF", "DEPARTMENT_OFFICER", "SUPERVISOR", "STAFF"];
+const DEPARTMENTS = [
+  { value: "PUBLIC_WORKS", label: "Public Works (Roads/Bridges)" },
+  { value: "SOLID_WASTE", label: "Solid Waste & Sanitation" },
+  { value: "WATER", label: "Water Supply" },
+  { value: "SEWERAGE", label: "Sewerage & Drainage" },
+  { value: "STREET_LIGHTING", label: "Street Lighting & Electrical" },
+  { value: "OTHER", label: "Other / General Administration" },
+];
+
+const ROLES = [
+  { value: "DEPARTMENT_OFFICER", label: "Department Officer" },
+  { value: "FIELD_STAFF", label: "Field Staff / Ground Worker" },
+  { value: "SUPERVISOR", label: "Supervisor / Ward Inspector" },
+  { value: "STAFF", label: "General Municipal Staff" },
+];
 
 export function StaffManagement() {
   const { success, error: toastError } = useToast();
@@ -147,7 +160,7 @@ export function StaffManagement() {
                   onChange={(e) => setForm({ ...form, department: e.target.value })}
                 >
                   {DEPARTMENTS.map((d) => (
-                    <option key={d} value={d}>{d.replace("_", " ")}</option>
+                    <option key={d.value} value={d.value}>{d.label}</option>
                   ))}
                 </select>
               </div>
@@ -160,7 +173,7 @@ export function StaffManagement() {
                   onChange={(e) => setForm({ ...form, role: e.target.value })}
                 >
                   {ROLES.map((r) => (
-                    <option key={r} value={r}>{r.replace("_", " ")}</option>
+                    <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
                 </select>
               </div>
