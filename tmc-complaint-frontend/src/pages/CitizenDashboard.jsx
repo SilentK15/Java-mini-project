@@ -6,10 +6,11 @@ import { ComplaintCard } from "../components/ComplaintCard.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { CardSkeleton } from "../components/Skeleton.jsx";
 import { readComplaintDraft } from "../complaintDraft.js";
+import { FileText, PlusCircle, Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 
 export function CitizenDashboard() {
   const { user } = useAuth();
-  const { complaints, loading, error, page, totalPages, totalElements, filters, setPage, updateFilters } = useComplaints();
+  const { complaints, loading, error, page, totalPages, totalElements, counts: backendCounts, filters, setPage, updateFilters } = useComplaints();
   const [hasDraft] = useState(() => {
     if (user?.email) {
       const draft = readComplaintDraft(user.email);
@@ -19,28 +20,55 @@ export function CitizenDashboard() {
   });
 
   const counts = {
-    total: totalElements,
-    submitted: complaints.filter((c) => c.status === "SUBMITTED").length,
-    inProgress: complaints.filter((c) => c.status === "IN_PROGRESS" || c.status === "ASSIGNED").length,
-    resolved: complaints.filter((c) => c.status === "RESOLVED").length,
+    total: backendCounts?.total ?? totalElements,
+    submitted: backendCounts?.submitted ?? complaints.filter((c) => c.status === "SUBMITTED").length,
+    inProgress: backendCounts?.inProgress ?? complaints.filter((c) => c.status === "IN_PROGRESS" || c.status === "ASSIGNED").length,
+    resolved: backendCounts?.resolved ?? complaints.filter((c) => c.status === "RESOLVED").length,
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-      {/* Welcome header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-4)" }}>
+      {/* Header bar */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "var(--space-4)",
+          paddingBottom: "var(--space-2)",
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: "1.75rem", marginBottom: "var(--space-1)" }}>Citizen Grievance Dashboard</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
-            Welcome, <strong>{user?.name || "Citizen"}</strong>. Track and monitor your reported municipal issues.
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "4px" }}>
+            <span
+              style={{
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--primary-600)",
+                backgroundColor: "var(--primary-50)",
+                padding: "2px 8px",
+                borderRadius: "var(--radius-sm)",
+              }}
+            >
+              Citizen Portal
+            </span>
+          </div>
+          <h1 style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>Citizen Grievance Redressal</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.9375rem", marginTop: "2px" }}>
+            Welcome back, <strong>{user?.name || "Citizen"}</strong>. Monitor and track your municipal reports.
           </p>
         </div>
-        <Link to="/submit" className="btn btn-primary btn-lg">
-          + Lodge New Grievance
+
+        <Link to="/submit" className="btn btn-accent btn-lg">
+          <PlusCircle size={18} />
+          <span>Lodge New Grievance</span>
         </Link>
       </div>
 
-      {/* Unsaved draft reminder */}
+      {/* Unsaved draft notification */}
       {hasDraft && (
         <div
           className="card animate-fade-in"
@@ -54,7 +82,7 @@ export function CitizenDashboard() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-            <span style={{ fontSize: "1.25rem" }}>📝</span>
+            <FileText size={18} style={{ color: "var(--status-progress-text)", flexShrink: 0 }} />
             <span style={{ fontSize: "0.875rem", color: "var(--status-progress-text)", fontWeight: 600 }}>
               You have an unfinished complaint draft from an earlier session.
             </span>
@@ -65,27 +93,34 @@ export function CitizenDashboard() {
         </div>
       )}
 
-      {/* Quick stats cards */}
+      {/* Quick stats strip */}
       <div className="grid-cards" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
-        <div className="card" style={{ padding: "var(--space-4)" }}>
-          <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", fontWeight: 600 }}>TOTAL REPORTED</div>
-          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--primary-600)" }}>{counts.total}</div>
+        <div className="stat-widget primary">
+          <div className="stat-title">Total Reported</div>
+          <div className="stat-num" style={{ color: "var(--primary-600)" }}>{counts.total}</div>
+          <div className="stat-desc">All lifetime grievances</div>
         </div>
-        <div className="card" style={{ padding: "var(--space-4)" }}>
-          <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", fontWeight: 600 }}>SUBMITTED / PENDING</div>
-          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--status-submitted-text)" }}>{counts.submitted}</div>
+
+        <div className="stat-widget primary">
+          <div className="stat-title">Submitted / Pending</div>
+          <div className="stat-num" style={{ color: "var(--status-submitted-text)" }}>{counts.submitted}</div>
+          <div className="stat-desc">Awaiting department triage</div>
         </div>
-        <div className="card" style={{ padding: "var(--space-4)" }}>
-          <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", fontWeight: 600 }}>IN PROGRESS</div>
-          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--status-progress-text)" }}>{counts.inProgress}</div>
+
+        <div className="stat-widget warning">
+          <div className="stat-title">In Progress</div>
+          <div className="stat-num" style={{ color: "var(--status-progress-text)" }}>{counts.inProgress}</div>
+          <div className="stat-desc">Assigned to field squads</div>
         </div>
-        <div className="card" style={{ padding: "var(--space-4)" }}>
-          <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", fontWeight: 600 }}>RESOLVED</div>
-          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--status-resolved-text)" }}>{counts.resolved}</div>
+
+        <div className="stat-widget success">
+          <div className="stat-title">Resolved & Verified</div>
+          <div className="stat-num" style={{ color: "var(--status-resolved-text)" }}>{counts.resolved}</div>
+          <div className="stat-desc">Work completed by TMC</div>
         </div>
       </div>
 
-      {/* Filter toolbar */}
+      {/* Search & Filter Toolbar */}
       <div
         className="card"
         style={{
@@ -95,39 +130,44 @@ export function CitizenDashboard() {
           flexWrap: "wrap",
           alignItems: "center",
           justifyContent: "space-between",
+          boxShadow: "var(--shadow-xs)",
         }}
       >
-        <div style={{ display: "flex", gap: "var(--space-2)", flex: "1 1 240px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: "1 1 280px", position: "relative" }}>
+          <Search size={16} style={{ position: "absolute", left: "12px", color: "var(--text-muted)" }} />
           <input
             type="text"
-            placeholder="Search your complaints by title or location..."
+            placeholder="Search grievances by title, description or location..."
             value={filters.search}
             onChange={(e) => updateFilters({ search: e.target.value })}
             className="form-input"
-            style={{ width: "100%" }}
+            style={{ paddingLeft: "36px", height: "40px" }}
           />
         </div>
 
         <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-          <select
-            value={filters.status}
-            onChange={(e) => updateFilters({ status: e.target.value })}
-            className="form-select"
-            style={{ width: "auto" }}
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="ASSIGNED">Assigned</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="RESOLVED">Resolved</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Filter size={14} style={{ color: "var(--text-muted)" }} />
+            <select
+              value={filters.status}
+              onChange={(e) => updateFilters({ status: e.target.value })}
+              className="form-select"
+              style={{ width: "auto", height: "40px", fontSize: "0.8125rem" }}
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="SUBMITTED">Submitted</option>
+              <option value="ASSIGNED">Assigned</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
 
           <select
             value={filters.category}
             onChange={(e) => updateFilters({ category: e.target.value })}
             className="form-select"
-            style={{ width: "auto" }}
+            style={{ width: "auto", height: "40px", fontSize: "0.8125rem" }}
           >
             <option value="ALL">All Categories</option>
             <option value="ROAD">Roads / Potholes</option>
@@ -136,12 +176,11 @@ export function CitizenDashboard() {
             <option value="ELECTRICITY">Electricity</option>
             <option value="STREET_LIGHT">Street Lights</option>
             <option value="DRAINAGE">Drainage / Sewage</option>
-            <option value="OTHER">Other</option>
           </select>
         </div>
       </div>
 
-      {/* Complaint cards grid / list */}
+      {/* Complaint cards grid */}
       {loading ? (
         <div className="grid-cards">
           <CardSkeleton />
@@ -154,11 +193,10 @@ export function CitizenDashboard() {
         </div>
       ) : complaints.length === 0 ? (
         <EmptyState
-          icon="📋"
           title="No complaints found"
           description={
             filters.search || filters.status !== "ALL" || filters.category !== "ALL"
-              ? "No grievances match your current search and filters."
+              ? "No grievances match your current search criteria."
               : "You have not lodged any municipal complaints yet."
           }
           actionText={filters.search || filters.status !== "ALL" ? "Clear Filters" : "Lodge a Complaint"}
@@ -180,15 +218,24 @@ export function CitizenDashboard() {
 
       {/* Pagination controls */}
       {totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "var(--space-3)",
+            marginTop: "var(--space-4)",
+          }}
+        >
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
             className="btn btn-secondary btn-sm"
           >
-            ← Previous
+            <ChevronLeft size={15} />
+            <span>Previous</span>
           </button>
-          <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
+          <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)", fontWeight: 500 }}>
             Page {page + 1} of {totalPages}
           </span>
           <button
@@ -196,7 +243,8 @@ export function CitizenDashboard() {
             disabled={page >= totalPages - 1}
             className="btn btn-secondary btn-sm"
           >
-            Next →
+            <span>Next</span>
+            <ChevronRight size={15} />
           </button>
         </div>
       )}

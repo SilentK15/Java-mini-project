@@ -4,6 +4,7 @@ import { getStaffAccounts, createStaffAccount, updateStaffStatus, getAuditLogs }
 import { useToast } from "../hooks/useToast.js";
 import { PasswordStrength } from "../components/PasswordStrength.jsx";
 import { evaluatePassword } from "../utils/password.js";
+import { UserPlus, ArrowLeft, Shield, Users, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
 const DEPARTMENTS = ["PUBLIC_WORKS", "WATER_SUPPLY", "SOLID_WASTE", "ELECTRICAL", "DRAINAGE", "GENERAL_ADMIN"];
 const ROLES = ["FIELD_STAFF", "DEPARTMENT_OFFICER", "SUPERVISOR", "STAFF"];
@@ -75,73 +76,180 @@ export function StaffManagement() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
         <div>
-          <h1 style={{ fontSize: "1.75rem", marginBottom: "var(--space-1)" }}>Staff & Administrative Governance</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.9375rem" }}>
-            Provision department personnel and review security audit logs
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "4px" }}>
+            <span
+              style={{
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--primary-600)",
+                backgroundColor: "var(--primary-50)",
+                padding: "2px 8px",
+                borderRadius: "var(--radius-sm)",
+              }}
+            >
+              Access Control & Governance
+            </span>
+          </div>
+          <h1 style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>Staff & Security Management</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.9375rem", marginTop: "2px" }}>
+            Provision municipal personnel and audit administrative actions
           </p>
         </div>
-        <Link to="/admin/analytics" className="btn btn-secondary">← Back to Analytics</Link>
+        <Link to="/admin/analytics" className="btn btn-secondary">
+          <ArrowLeft size={16} />
+          <span>Back to Analytics</span>
+        </Link>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "var(--space-6)" }}>
         {/* Create Staff Account Form */}
         <div className="card" style={{ padding: "var(--space-6)" }}>
-          <h2 style={{ fontSize: "1.125rem", marginBottom: "var(--space-4)" }}>Provision Municipal Staff</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--space-4)" }}>
+            <UserPlus size={18} style={{ color: "var(--primary-600)" }} />
+            <h2 style={{ fontSize: "1.125rem" }}>Provision Municipal Staff</h2>
+          </div>
+
           <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             <div className="form-group">
               <label className="form-label">Full Name</label>
-              <input required className="form-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Ramesh Shinde" />
+              <input
+                required
+                className="form-input"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. Ramesh Shinde"
+              />
             </div>
 
             <div className="form-group">
-              <label className="form-label">Official Email</label>
-              <input required type="email" className="form-input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="e.g. ramesh.shinde@tmc.gov.in" />
+              <label className="form-label">Official TMC Email</label>
+              <input
+                required
+                type="email"
+                className="form-input"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="e.g. ramesh.shinde@tmc.gov.in"
+              />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Department</label>
-              <select className="form-select" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
-                {DEPARTMENTS.map((d) => <option key={d} value={d}>{d.replace("_", " ")}</option>)}
-              </select>
-            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+              <div className="form-group">
+                <label className="form-label">Department</label>
+                <select
+                  className="form-select"
+                  value={form.department}
+                  onChange={(e) => setForm({ ...form, department: e.target.value })}
+                >
+                  {DEPARTMENTS.map((d) => (
+                    <option key={d} value={d}>{d.replace("_", " ")}</option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Role</label>
-              <select className="form-select" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                {ROLES.map((r) => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
-              </select>
+              <div className="form-group">
+                <label className="form-label">Role</label>
+                <select
+                  className="form-select"
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>{r.replace("_", " ")}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="form-group">
               <label className="form-label">Password</label>
-              <input required type="password" className="form-input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Min 10 characters" />
-              <PasswordStrength password={form.password} />
+              <input
+                required
+                type="password"
+                className="form-input"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Min 10 characters"
+              />
+              <div style={{ marginTop: "4px" }}>
+                <PasswordStrength password={form.password} />
+              </div>
             </div>
 
-            <button type="submit" disabled={creating} className="btn btn-primary" style={{ marginTop: "var(--space-2)" }}>
+            <button
+              type="submit"
+              disabled={creating}
+              className="btn btn-primary"
+              style={{ marginTop: "var(--space-2)", height: "42px" }}
+            >
               {creating ? "Provisioning..." : "Create Staff Account"}
             </button>
           </form>
         </div>
 
-        {/* Staff accounts list */}
+        {/* Staff Accounts List */}
         <div className="card" style={{ padding: "var(--space-6)" }}>
-          <h2 style={{ fontSize: "1.125rem", marginBottom: "var(--space-4)" }}>Department Personnel ({staffList.length})</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Users size={18} style={{ color: "var(--primary-600)" }} />
+              <h2 style={{ fontSize: "1.125rem" }}>Personnel Directory ({staffList.length})</h2>
+            </div>
+          </div>
+
           {loading ? (
-            <p style={{ color: "var(--text-muted)" }}>Loading staff...</p>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>Loading personnel directory...</p>
           ) : staffList.length === 0 ? (
-            <p style={{ color: "var(--text-muted)" }}>No staff accounts provisioned yet.</p>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>No staff accounts provisioned yet.</p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxHeight: "400px", overflowY: "auto" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxHeight: "380px", overflowY: "auto" }}>
               {staffList.map((s) => (
-                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", backgroundColor: "var(--bg-subtle)", borderRadius: "var(--radius-sm)" }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{s.name}</div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{s.email} • {s.department} • {s.role}</div>
+                <div
+                  key={s.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "10px 14px",
+                    backgroundColor: "var(--bg-subtle)",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-subtle)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        backgroundColor: "var(--primary-100)",
+                        color: "var(--primary-700)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "0.8125rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {(s.name || "U").charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{s.name}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        {s.email} &bull; {s.department.replace("_", " ")}
+                      </div>
+                    </div>
                   </div>
-                  <button onClick={() => handleToggleStatus(s)} className={`btn btn-sm ${s.enabled ? "btn-secondary" : "btn-primary"}`} style={{ fontSize: "0.75rem" }}>
+
+                  <button
+                    onClick={() => handleToggleStatus(s)}
+                    className={`btn btn-sm ${s.enabled ? "btn-secondary" : "btn-primary"}`}
+                    style={{ height: "28px", padding: "0 10px", fontSize: "0.75rem" }}
+                  >
                     {s.enabled ? "Disable" : "Enable"}
                   </button>
                 </div>
@@ -153,52 +261,81 @@ export function StaffManagement() {
 
       {/* Security Audit Log */}
       <div className="card" style={{ padding: "var(--space-6)" }}>
-        <h2 style={{ fontSize: "1.125rem", marginBottom: "var(--space-3)" }}>Administrative Security Audit Log</h2>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--space-4)" }}>
+          <Shield size={18} style={{ color: "var(--primary-600)" }} />
+          <h2 style={{ fontSize: "1.125rem" }}>Administrative Security Audit Trail</h2>
+        </div>
+
+        <div className="table-container">
+          <table className="data-table">
             <thead>
-              <tr style={{ borderBottom: "1px solid var(--border-default)", textAlign: "left" }}>
-                <th style={{ padding: "8px" }}>Timestamp</th>
-                <th style={{ padding: "8px" }}>Actor</th>
-                <th style={{ padding: "8px" }}>Action</th>
-                <th style={{ padding: "8px" }}>Target</th>
-                <th style={{ padding: "8px" }}>Details</th>
+              <tr>
+                <th>Timestamp</th>
+                <th>Actor</th>
+                <th>Action</th>
+                <th>Target</th>
+                <th>Details</th>
               </tr>
             </thead>
             <tbody>
               {auditLogs.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding: "16px", textAlign: "center", color: "var(--text-muted)" }}>No audit events logged yet.</td></tr>
+                <tr>
+                  <td colSpan={5} style={{ padding: "20px", textAlign: "center", color: "var(--text-muted)" }}>
+                    No administrative audit events recorded yet.
+                  </td>
+                </tr>
               ) : (
                 auditLogs.map((log) => (
-                  <tr key={log.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                    <td style={{ padding: "8px" }}>{new Date(log.createdAt).toLocaleString()}</td>
-                    <td style={{ padding: "8px", fontWeight: 600 }}>{log.actorEmail}</td>
-                    <td style={{ padding: "8px" }}>{log.action}</td>
-                    <td style={{ padding: "8px" }}>{log.targetType} #{log.targetId}</td>
-                    <td style={{ padding: "8px", color: "var(--text-secondary)" }}>{log.details}</td>
+                  <tr key={log.id}>
+                    <td style={{ whiteSpace: "nowrap", color: "var(--text-muted)", fontSize: "0.78125rem" }}>
+                      {new Date(log.createdAt).toLocaleString()}
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{log.actorEmail}</td>
+                    <td>
+                      <span
+                        style={{
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          backgroundColor: "var(--bg-subtle)",
+                          padding: "2px 6px",
+                          borderRadius: "var(--radius-sm)",
+                        }}
+                      >
+                        {log.action}
+                      </span>
+                    </td>
+                    <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>
+                      {log.targetType} #{log.targetId}
+                    </td>
+                    <td style={{ color: "var(--text-secondary)", fontSize: "0.8125rem" }}>{log.details}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-3)" }}>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--space-2)", marginTop: "var(--space-4)" }}>
           <button
             type="button"
             disabled={auditPage === 0}
             onClick={() => setAuditPage((p) => Math.max(0, p - 1))}
             className="btn btn-secondary btn-sm"
           >
-            ← Prev
+            <ChevronLeft size={14} />
+            <span>Prev</span>
           </button>
-          <span style={{ fontSize: "0.75rem", alignSelf: "center", color: "var(--text-muted)" }}>Page {auditPage + 1}</span>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", padding: "0 4px" }}>
+            Page {auditPage + 1}
+          </span>
           <button
             type="button"
             disabled={auditLogs.length < 10}
             onClick={() => setAuditPage((p) => p + 1)}
             className="btn btn-secondary btn-sm"
           >
-            Next →
+            <span>Next</span>
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>

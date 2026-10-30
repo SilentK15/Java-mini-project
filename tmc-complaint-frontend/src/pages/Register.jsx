@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { useToast } from "../hooks/useToast.js";
 import { PasswordStrength } from "../components/PasswordStrength.jsx";
 import { evaluatePassword } from "../utils/password.js";
+import { UserPlus, ArrowRight } from "lucide-react";
 
 export function Register() {
   const { register } = useAuth();
@@ -52,10 +53,27 @@ export function Register() {
   };
 
   return (
-    <div style={{ maxWidth: "480px", margin: "var(--space-8) auto", width: "100%" }}>
-      <div className="card" style={{ padding: "var(--space-8)" }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flex: 1,
+        width: "100%",
+        padding: "var(--space-8) 0",
+      }}
+    >
+      <div
+        className="card"
+        style={{
+          maxWidth: "440px",
+          width: "100%",
+          padding: "var(--space-8)",
+          boxShadow: "var(--shadow-lg)",
+        }}
+      >
         <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
-          <h1 style={{ fontSize: "1.75rem", marginBottom: "var(--space-1)" }}>Citizen Registration</h1>
+          <h1 style={{ fontSize: "1.5rem", marginBottom: "var(--space-1)" }}>Citizen Registration</h1>
           <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
             Register to lodge grievances and track municipal resolutions
           </p>
@@ -72,6 +90,7 @@ export function Register() {
               color: "var(--status-rejected-text)",
               fontSize: "0.875rem",
               marginBottom: "var(--space-4)",
+              fontWeight: 500,
             }}
           >
             {errorMessage}
@@ -122,24 +141,41 @@ export function Register() {
               className="form-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Create a strong password (min 10 chars)"
+              placeholder="Create a password (min 10 characters)"
             />
-            <PasswordStrength password={password} />
+            <span className="form-hint" style={{ marginTop: "4px" }}>
+              Must be at least 10 characters long.
+            </span>
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-accent"
             disabled={loading}
-            style={{ width: "100%", marginTop: "var(--space-4)", padding: "var(--space-3)" }}
+            style={{ width: "100%", marginTop: "var(--space-4)", height: "44px" }}
           >
-            {loading ? "Creating Account..." : "Create Citizen Account"}
+            {loading ? (
+              "Creating Account..."
+            ) : (
+              <>
+                <span>Create Citizen Account</span>
+                <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </form>
 
-        <div style={{ marginTop: "var(--space-6)", textAlign: "center", fontSize: "0.875rem" }}>
+        <div
+          style={{
+            marginTop: "var(--space-6)",
+            paddingTop: "var(--space-4)",
+            borderTop: "1px solid var(--border-subtle)",
+            textAlign: "center",
+            fontSize: "0.875rem",
+          }}
+        >
           <span style={{ color: "var(--text-secondary)" }}>Already registered? </span>
-          <Link to="/login" style={{ fontWeight: 600 }}>
+          <Link to="/login" style={{ fontWeight: 600, color: "var(--primary-600)" }}>
             Sign In Here
           </Link>
         </div>

@@ -1,8 +1,8 @@
-import { createContext, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getCurrentUser, login as apiLogin, logout as apiLogout, register as apiRegister, updateProfile as apiUpdateProfile, getCsrf } from "../api/auth.js";
+import { AuthContext } from "./authContextDef.js";
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const AuthContext = createContext(null);
+export { AuthContext };
 
 const EMPLOYEE_ROLES = ["STAFF", "FIELD_STAFF", "DEPARTMENT_OFFICER", "SUPERVISOR"];
 

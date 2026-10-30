@@ -8,6 +8,7 @@ export function useComplaints(initialFilters = {}) {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [counts, setCounts] = useState(null);
   const [filters, setFilters] = useState({
     search: "",
     status: "ALL",
@@ -22,22 +23,25 @@ export function useComplaints(initialFilters = {}) {
     setError(null);
     try {
       const data = await getComplaints({ ...filters, page, size: 10 });
-      if (Array.isArray(data)) {
-        setComplaints(data);
-        setTotalPages(1);
-        setTotalElements(data.length);
-      } else if (data && Array.isArray(data.content)) {
-        setComplaints(data.content);
-        setTotalPages(data.totalPages ?? 1);
-        setTotalElements(data.totalElements ?? data.content.length);
-      } else {
-        setComplaints([]);
-        setTotalPages(0);
-        setTotalElements(0);
+      const items = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.complaints)
+        ? data.complaints
+        : Array.isArray(data?.content)
+        ? data.content
+        : [];
+
+      setComplaints(items);
+      setTotalPages(data?.totalPages ?? (items.length ? 1 : 0));
+      setTotalElements(data?.totalElements ?? items.length);
+      if (data?.counts) {
+        setCounts(data.counts);
       }
     } catch (err) {
       setError(err.message || "Failed to load complaints");
       setComplaints([]);
+      setTotalPages(0);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
@@ -59,6 +63,7 @@ export function useComplaints(initialFilters = {}) {
     page,
     totalPages,
     totalElements,
+    counts,
     filters,
     setPage,
     updateFilters,

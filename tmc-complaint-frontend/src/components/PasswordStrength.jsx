@@ -1,4 +1,5 @@
 import { evaluatePassword } from "../utils/password.js";
+import { Check, X } from "lucide-react";
 
 export function PasswordStrength({ password }) {
   const result = evaluatePassword(password);
@@ -19,15 +20,18 @@ export function PasswordStrength({ password }) {
       <div style={{ height: "4px", backgroundColor: "var(--border-default)", borderRadius: "2px", overflow: "hidden" }}>
         <div style={{ width: `${pct}%`, height: "100%", backgroundColor: result.color, transition: "width 0.3s ease" }} />
       </div>
-      <ul style={{ margin: "6px 0 0 0", padding: "0 0 0 16px", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-        <li style={{ color: result.checks.length ? "var(--status-resolved-text)" : "var(--status-rejected-text)" }}>
-          {result.checks.length ? "✓" : "✗"} At least 10 characters
+      <ul style={{ margin: "6px 0 0 0", padding: "0 0 0 16px", fontSize: "0.75rem", color: "var(--text-muted)", listStyle: "none" }}>
+        <li style={{ color: result.checks.length ? "var(--status-resolved-text)" : "var(--status-rejected-text)", display: "flex", alignItems: "center", gap: "6px" }}>
+          {result.checks.length ? <Check size={12} strokeWidth={3} /> : <X size={12} strokeWidth={3} />}
+          <span>At least 10 characters</span>
         </li>
-        <li style={{ color: result.checks.notCommon ? "var(--status-resolved-text)" : "var(--status-rejected-text)" }}>
-          {result.checks.notCommon ? "✓" : "✗"} Not a common password
+        <li style={{ color: result.checks.notCommon ? "var(--status-resolved-text)" : "var(--status-rejected-text)", display: "flex", alignItems: "center", gap: "6px" }}>
+          {result.checks.notCommon ? <Check size={12} strokeWidth={3} /> : <X size={12} strokeWidth={3} />}
+          <span>Not a common password</span>
         </li>
-        <li style={{ color: result.checks.bytes ? "var(--status-resolved-text)" : "var(--status-rejected-text)" }}>
-          {result.checks.bytes ? "✓" : "✗"} Max 72 bytes
+        <li style={{ color: result.checks.bytes ? "var(--status-resolved-text)" : "var(--status-rejected-text)", display: "flex", alignItems: "center", gap: "6px" }}>
+          {result.checks.bytes ? <Check size={12} strokeWidth={3} /> : <X size={12} strokeWidth={3} />}
+          <span>Max 72 bytes</span>
         </li>
       </ul>
     </div>

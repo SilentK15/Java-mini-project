@@ -122,6 +122,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private void sendRateLimitResponse(HttpServletRequest request, HttpServletResponse response, long retryAfterSeconds)
             throws IOException {
+        String origin = request.getHeader("Origin");
+        if (origin != null && !origin.isBlank()) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+            response.setHeader("Access-Control-Allow-Credentials", "true");
+        }
         response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
         response.setHeader("Retry-After", String.valueOf(retryAfterSeconds));
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);

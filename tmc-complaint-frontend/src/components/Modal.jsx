@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { X } from "lucide-react";
 
 export function Modal({ isOpen, onClose, title, children, maxWidth = "500px" }) {
   useEffect(() => {
@@ -60,9 +61,9 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "500px" }) 
             onClick={onClose}
             aria-label="Close dialog"
             className="btn btn-secondary btn-sm"
-            style={{ width: "32px", height: "32px", padding: 0, borderRadius: "50%" }}
+            style={{ width: "32px", height: "32px", padding: 0, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
           >
-            ✕
+            <X size={16} />
           </button>
         </div>
         {children}

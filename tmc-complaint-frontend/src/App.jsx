@@ -22,8 +22,6 @@ import { AdminDashboard } from "./pages/AdminDashboard.jsx";
 import { StaffManagement } from "./pages/StaffManagement.jsx";
 import { NotFound } from "./pages/NotFound.jsx";
 
-import "./styles/index.css";
-
 function DashboardDispatcher() {
   const { isAdmin, isStaff } = useAuth();
   if (isAdmin) return <AdminDashboard />;
@@ -146,17 +144,43 @@ export default function App() {
                   justifyContent: "space-between",
                   alignItems: "center",
                   flexWrap: "wrap",
-                  gap: "var(--space-2)",
+                  gap: "var(--space-4)",
                   fontSize: "0.8125rem",
                   color: "var(--text-muted)",
+                  flexDirection: "row",
                 }}
               >
-                <div>
-                  © {new Date().getFullYear()} Thane Municipal Corporation. CivicConnect Redressal System.
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>CivicConnect</span>
+                  <span>&bull;</span>
+                  <span>Thane Municipal Corporation Grievance Redressal</span>
+                  <span>&bull;</span>
+                  <span>&copy; {new Date().getFullYear()}</span>
                 </div>
-                <div style={{ display: "flex", gap: "var(--space-4)" }}>
-                  <span>Emergency Helpline: 1800-222-108</span>
-                  <span>Disaster Cell: 022-25371010</span>
+
+                <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      backgroundColor: "var(--bg-subtle)",
+                      padding: "4px 10px",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-subtle)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Toll-Free: <strong>1800-222-108</strong>
+                  </span>
+                  <span
+                    style={{
+                      backgroundColor: "var(--bg-subtle)",
+                      padding: "4px 10px",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-subtle)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Disaster Control: <strong>022-25371010</strong>
+                  </span>
                 </div>
               </div>
             </footer>

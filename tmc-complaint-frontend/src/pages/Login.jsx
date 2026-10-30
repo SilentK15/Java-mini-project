@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { useToast } from "../hooks/useToast.js";
+import { ArrowRight } from "lucide-react";
 
 export function Login() {
   const { login } = useAuth();
@@ -38,12 +39,29 @@ export function Login() {
   };
 
   return (
-    <div style={{ maxWidth: "440px", margin: "var(--space-8) auto", width: "100%" }}>
-      <div className="card" style={{ padding: "var(--space-8)" }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flex: 1,
+        width: "100%",
+        padding: "var(--space-8) 0",
+      }}
+    >
+      <div
+        className="card"
+        style={{
+          maxWidth: "420px",
+          width: "100%",
+          padding: "var(--space-8)",
+          boxShadow: "var(--shadow-lg)",
+        }}
+      >
         <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
-          <h1 style={{ fontSize: "1.75rem", marginBottom: "var(--space-1)" }}>Citizen & Staff Login</h1>
+          <h1 style={{ fontSize: "1.5rem", marginBottom: "var(--space-1)" }}>Citizen & Staff Login</h1>
           <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-            Access your civic grievance redressal dashboard
+            Access Thane Municipal Corporation Grievance Portal
           </p>
         </div>
 
@@ -58,6 +76,7 @@ export function Login() {
               color: "var(--status-rejected-text)",
               fontSize: "0.875rem",
               marginBottom: "var(--space-4)",
+              fontWeight: 500,
             }}
           >
             {errorMessage}
@@ -93,7 +112,7 @@ export function Login() {
               className="form-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Enter your account password"
             />
           </div>
 
@@ -101,15 +120,30 @@ export function Login() {
             type="submit"
             className="btn btn-primary"
             disabled={loading}
-            style={{ width: "100%", marginTop: "var(--space-3)", padding: "var(--space-3)" }}
+            style={{ width: "100%", marginTop: "var(--space-4)", height: "44px" }}
           >
-            {loading ? "Authenticating..." : "Sign In"}
+            {loading ? (
+              "Authenticating..."
+            ) : (
+              <>
+                <span>Sign In</span>
+                <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </form>
 
-        <div style={{ marginTop: "var(--space-6)", textAlign: "center", fontSize: "0.875rem" }}>
+        <div
+          style={{
+            marginTop: "var(--space-6)",
+            paddingTop: "var(--space-4)",
+            borderTop: "1px solid var(--border-subtle)",
+            textAlign: "center",
+            fontSize: "0.875rem",
+          }}
+        >
           <span style={{ color: "var(--text-secondary)" }}>Don't have an account yet? </span>
-          <Link to="/register" style={{ fontWeight: 600 }}>
+          <Link to="/register" style={{ fontWeight: 600, color: "var(--primary-600)" }}>
             Register as a Citizen
           </Link>
         </div>

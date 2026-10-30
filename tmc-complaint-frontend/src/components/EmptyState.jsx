@@ -1,4 +1,6 @@
-export function EmptyState({ icon = "📋", title, description, actionText, onAction }) {
+import { ClipboardList } from "lucide-react";
+
+export function EmptyState({ icon, title, description, actionText, onAction }) {
   return (
     <div
       className="card"
@@ -12,7 +14,9 @@ export function EmptyState({ icon = "📋", title, description, actionText, onAc
         gap: "var(--space-3)",
       }}
     >
-      <div style={{ fontSize: "3rem", lineHeight: 1 }}>{icon}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {icon || <ClipboardList size={42} strokeWidth={1.5} style={{ color: "var(--text-muted)" }} />}
+      </div>
       <h3 style={{ fontSize: "1.25rem", color: "var(--text-primary)" }}>{title}</h3>
       {description && (
         <p style={{ maxWidth: "420px", fontSize: "0.9375rem", color: "var(--text-secondary)" }}>

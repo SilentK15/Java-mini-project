@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { useToast } from "../hooks/useToast.js";
 import { LocationPicker } from "../components/LocationPicker.jsx";
-import { classifyComplaint, checkDuplicates, submitComplaint } from "../api/complaints.js";
+import { classifyComplaint, checkDuplicates, submitComplaint, generateUuid } from "../api/complaints.js";
 import { clearComplaintDraft, readComplaintDraft, writeComplaintDraft } from "../complaintDraft.js";
 import { searchThaneLocations, reverseGeocodeThane } from "../locationData.js";
+import { MapPin, AlertTriangle, ArrowRight, ArrowLeft, Upload, CheckCircle2, Sparkles, FileText, ShieldCheck, Navigation, Loader2 } from "lucide-react";
+import { PriorityBadge } from "../components/PriorityBadge.jsx";
 
 const CATEGORIES = [
   { value: "ROAD", label: "Roads & Potholes" },
@@ -14,8 +16,20 @@ const CATEGORIES = [
   { value: "ELECTRICITY", label: "Electricity / Power Outage" },
   { value: "STREET_LIGHT", label: "Street Lighting" },
   { value: "DRAINAGE", label: "Drainage & Sewage Overflow" },
-  { value: "OTHER", label: "Other Civic Issues" },
 ];
+
+const CATEGORY_PRIORITY_MAP = {
+  DRAINAGE: { priority: "HIGH", label: "High Priority", reason: "Public health, sanitation & flood hazard" },
+  ELECTRICITY: { priority: "HIGH", label: "High Priority", reason: "Electrical safety & power outage hazard" },
+  ROAD: { priority: "MEDIUM", label: "Medium Priority", reason: "Transit safety & pothole infrastructure repair" },
+  WATER: { priority: "MEDIUM", label: "Medium Priority", reason: "Municipal potable water supply & pipeline leaks" },
+  GARBAGE: { priority: "MEDIUM", label: "Medium Priority", reason: "Solid waste clearance & sanitation hygiene" },
+  STREET_LIGHT: { priority: "LOW", label: "Low Priority", reason: "Routine street illumination & fixture repair" },
+};
+
+const getPriorityForCategory = (category) => {
+  return (CATEGORY_PRIORITY_MAP[category] || CATEGORY_PRIORITY_MAP.ROAD).priority;
+};
 
 export function SubmitComplaint() {
   const { user } = useAuth();
@@ -25,13 +39,14 @@ export function SubmitComplaint() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(() => {
     const draft = user?.email ? readComplaintDraft(user.email) : null;
+    const initialCategory = draft?.category || "ROAD";
     return draft
       ? {
           title: draft.title || "",
           description: draft.description || "",
-          category: draft.category || "ROAD",
+          category: initialCategory,
           location: draft.location || "Naupada, Thane",
-          priority: draft.priority || "MEDIUM",
+          priority: getPriorityForCategory(initialCategory),
           latitude: draft.latitude || "",
           longitude: draft.longitude || "",
         }
@@ -40,7 +55,7 @@ export function SubmitComplaint() {
           description: "",
           category: "ROAD",
           location: "Naupada, Thane",
-          priority: "MEDIUM",
+          priority: getPriorityForCategory("ROAD"),
           latitude: "",
           longitude: "",
         };
@@ -54,15 +69,72 @@ export function SubmitComplaint() {
   const [possibleDuplicates, setPossibleDuplicates] = useState([]);
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [locationResults, setLocationResults] = useState([]);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   const idempotencyKeyRef = useRef(null);
   useEffect(() => {
     if (!idempotencyKeyRef.current) {
-      idempotencyKeyRef.current = "sub-" + Date.now() + "-" + Math.random().toString(36).substring(2, 8);
+      idempotencyKeyRef.current = generateUuid();
     }
   }, []);
 
-  // Autosave draft on form change
+  const detectCurrentLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      toastError("Geolocation is not supported by your browser.");
+      return;
+    }
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        setForm((prev) => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng,
+        }));
+        try {
+          const rev = await reverseGeocodeThane(lat, lng);
+          if (rev) {
+            setForm((prev) => ({
+              ...prev,
+              location: rev,
+              latitude: lat,
+              longitude: lng,
+            }));
+            success(`Detected location: ${rev}`);
+          } else {
+            setForm((prev) => ({
+              ...prev,
+              location: prev.location || `GPS Location (${lat}, ${lng})`,
+              latitude: lat,
+              longitude: lng,
+            }));
+            success("GPS coordinates detected successfully.");
+          }
+        } catch {
+          success("GPS coordinates detected successfully.");
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (err) => {
+        setDetectingLocation(false);
+        console.warn("Geolocation warning:", err.message);
+        toastError("Could not retrieve GPS location automatically. Please enter your address or pin the map.");
+      },
+      { timeout: 8000, enableHighAccuracy: true, maximumAge: 30000 }
+    );
+  };
+
+  useEffect(() => {
+    if (step === 2 && !form.latitude && !form.location) {
+      detectCurrentLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  // Autosave draft
   useEffect(() => {
     if (user?.email && (form.title || form.description)) {
       writeComplaintDraft(user.email, form);
@@ -73,7 +145,15 @@ export function SubmitComplaint() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Keyword classification trigger
+  const handleCategoryChange = (newCategory) => {
+    const autoPriority = getPriorityForCategory(newCategory);
+    setForm((prev) => ({
+      ...prev,
+      category: newCategory,
+      priority: autoPriority,
+    }));
+  };
+
   const handleAutoClassify = async () => {
     const text = `${form.title} ${form.description}`.trim();
     if (text.length < 5) return;
@@ -101,9 +181,13 @@ export function SubmitComplaint() {
 
   const handleMapPin = async (lat, lng) => {
     setForm((prev) => ({ ...prev, latitude: lat, longitude: lng }));
-    const rev = reverseGeocodeThane(lat, lng);
-    if (rev && !form.location) {
-      setForm((prev) => ({ ...prev, location: rev }));
+    try {
+      const rev = await reverseGeocodeThane(lat, lng);
+      if (rev) {
+        setForm((prev) => ({ ...prev, location: rev, latitude: lat, longitude: lng }));
+      }
+    } catch {
+      // Keep manual location
     }
   };
 
@@ -115,7 +199,6 @@ export function SubmitComplaint() {
     }
   };
 
-  // Step progression with duplicate check
   const handleProceedToReview = async () => {
     if (!form.title.trim() || !form.description.trim() || !form.location.trim()) {
       toastError("Please complete title, description, and location.");
@@ -159,6 +242,7 @@ export function SubmitComplaint() {
       }
 
       const res = await submitComplaint(data, idempotencyKeyRef.current);
+      idempotencyKeyRef.current = generateUuid();
       if (user?.email) clearComplaintDraft(user.email);
       success(`Grievance submitted successfully! Reference: ${res.complaintNumber || "Generated"}`);
       navigate(`/dashboard`);
@@ -169,36 +253,107 @@ export function SubmitComplaint() {
     }
   };
 
-  return (
-    <div style={{ maxWidth: "680px", margin: "0 auto", width: "100%" }}>
-      <div className="card" style={{ padding: "var(--space-6)" }}>
-        <h1 style={{ fontSize: "1.5rem", marginBottom: "var(--space-1)" }}>Lodge a Municipal Grievance</h1>
-        <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "var(--space-6)" }}>
-          Thane Municipal Corporation Citizen Intake Portal
-        </p>
+  const stepsList = [
+    { num: 1, title: "Issue Details" },
+    { num: 2, title: "Location & Evidence" },
+    { num: 3, title: "Review & Submit" },
+  ];
 
-        {/* Stepper tabs */}
-        <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-6)" }}>
-          {["1. Issue Details", "2. Location & Photo", "3. Review & Submit"].map((label, idx) => (
-            <button
-              key={label}
-              onClick={() => idx + 1 < step && setStep(idx + 1)}
-              className={`btn btn-sm ${step === idx + 1 ? "btn-primary" : "btn-secondary"}`}
-              style={{ flex: 1 }}
-            >
-              {label}
-            </button>
-          ))}
+  return (
+    <div style={{ maxWidth: "720px", margin: "0 auto", width: "100%" }}>
+      <div className="card" style={{ padding: "var(--space-8)", boxShadow: "var(--shadow-md)" }}>
+        {/* Title Header */}
+        <div style={{ marginBottom: "var(--space-6)" }}>
+          <span
+            style={{
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              color: "var(--primary-600)",
+            }}
+          >
+            TMC Civic Intake Portal
+          </span>
+          <h1 style={{ fontSize: "1.625rem", marginTop: "2px", letterSpacing: "-0.02em" }}>
+            Lodge a Municipal Grievance
+          </h1>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+            Direct digital dispatch to Thane ward engineering squads
+          </p>
         </div>
 
+        {/* Clean Modern Stepper Navigation */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "var(--space-8)",
+            borderBottom: "1px solid var(--border-subtle)",
+            paddingBottom: "var(--space-4)",
+          }}
+        >
+          {stepsList.map((s) => {
+            const isActive = step === s.num;
+            const isDone = step > s.num;
+            return (
+              <div
+                key={s.num}
+                onClick={() => isDone && setStep(s.num)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  cursor: isDone ? "pointer" : "default",
+                  opacity: isActive || isDone ? 1 : 0.45,
+                }}
+              >
+                <div
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "50%",
+                    backgroundColor: isActive
+                      ? "var(--primary-600)"
+                      : isDone
+                      ? "#10b981"
+                      : "var(--bg-subtle)",
+                    color: isActive || isDone ? "#ffffff" : "var(--text-muted)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.8125rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {isDone ? <CheckCircle2 size={16} /> : s.num}
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                  }}
+                >
+                  {s.title}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Step 1: Issue Details */}
         {step === 1 && (
           <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <div className="form-group">
-              <label className="form-label" htmlFor="title">Issue Title</label>
+              <label className="form-label" htmlFor="title">
+                Issue Summary / Title
+              </label>
               <input
                 id="title"
                 className="form-input"
-                placeholder="e.g. Deep pothole on Gokhale Road near station"
+                placeholder="e.g. Deep pothole on Gokhale Road near Thane Station West"
                 value={form.title}
                 onChange={(e) => handleTextChange("title", e.target.value)}
                 onBlur={handleAutoClassify}
@@ -206,12 +361,14 @@ export function SubmitComplaint() {
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="description">Detailed Description</label>
+              <label className="form-label" htmlFor="description">
+                Detailed Grievance Description
+              </label>
               <textarea
                 id="description"
                 className="form-textarea"
                 rows={4}
-                placeholder="Describe the problem, landmark, and severity..."
+                placeholder="Describe the issue in detail, including nearby landmarks, hazards, and how long it has persisted..."
                 value={form.description}
                 onChange={(e) => handleTextChange("description", e.target.value)}
                 onBlur={handleAutoClassify}
@@ -219,29 +376,44 @@ export function SubmitComplaint() {
             </div>
 
             <div className="form-group">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label className="form-label" htmlFor="category">
-                  Category {classifying && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>(analyzing...)</span>}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <label className="form-label" htmlFor="category" style={{ margin: 0 }}>
+                  Municipal Category
                 </label>
-                {suggestedCategory && (
-                  <span style={{ fontSize: "0.75rem", color: "var(--primary-600)" }}>
-                    Suggested category (keyword-based): <strong>{suggestedCategory}</strong>{" "}
+                {classifying && (
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <Sparkles size={12} /> Analyzing keywords...
+                  </span>
+                )}
+                {suggestedCategory && !classifying && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "0.75rem",
+                      backgroundColor: "var(--primary-50)",
+                      padding: "2px 8px",
+                      borderRadius: "var(--radius-sm)",
+                    }}
+                  >
+                    <span>Suggested: <strong>{suggestedCategory}</strong></span>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ padding: "1px 6px", fontSize: "0.75rem" }}
-                      onClick={() => setForm((p) => ({ ...p, category: suggestedCategory }))}
+                      className="btn btn-primary btn-sm"
+                      style={{ height: "22px", padding: "0 6px", fontSize: "0.6875rem" }}
+                      onClick={() => handleCategoryChange(suggestedCategory)}
                     >
                       Apply
                     </button>
-                  </span>
+                  </div>
                 )}
               </div>
               <select
                 id="category"
                 className="form-select"
                 value={form.category}
-                onChange={(e) => handleTextChange("category", e.target.value)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -250,40 +422,106 @@ export function SubmitComplaint() {
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="priority">Citizen Priority</label>
-              <select
-                id="priority"
-                className="form-select"
-                value={form.priority}
-                onChange={(e) => handleTextChange("priority", e.target.value)}
+              <label className="form-label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Severity / Redressal Priority</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                  <ShieldCheck size={13} style={{ color: "var(--primary-600)" }} /> Auto-assigned by Category SLA Policy
+                </span>
+              </label>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "0 14px",
+                  borderRadius: "var(--radius-md)",
+                  backgroundColor: "var(--bg-subtle)",
+                  border: "1px solid var(--border-default)",
+                  height: "44px",
+                }}
               >
-                <option value="LOW">Low - Routine issue</option>
-                <option value="MEDIUM">Medium - Noticeable inconvenience</option>
-                <option value="HIGH">High - Urgent / Safety Hazard</option>
-              </select>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <PriorityBadge priority={form.priority} />
+                  <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                    {CATEGORY_PRIORITY_MAP[form.category]?.reason || "Standard Municipal Redressal"}
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.6875rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: "var(--text-muted)",
+                    backgroundColor: "var(--bg-surface)",
+                    padding: "3px 8px",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--border-subtle)",
+                  }}
+                >
+                  System Determined
+                </span>
+              </div>
+              <span className="form-hint" style={{ marginTop: "4px" }}>
+                Municipal response SLAs are automatically enforced based on the issue type.
+              </span>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                if (!form.title.trim() || !form.description.trim()) {
-                  toastError("Please provide title and description.");
-                  return;
-                }
-                setStep(2);
-              }}
-              style={{ alignSelf: "flex-end" }}
-            >
-              Continue to Location & Evidence →
-            </button>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "var(--space-4)" }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  if (!form.title.trim() || !form.description.trim()) {
+                    toastError("Please provide both title and description.");
+                    return;
+                  }
+                  setStep(2);
+                }}
+              >
+                <span>Continue to Location</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
           </div>
         )}
 
+        {/* Step 2: Location & Evidence */}
         {step === 2 && (
           <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <div className="form-group">
-              <label className="form-label" htmlFor="location">Address / Ward Area in Thane</label>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "var(--space-2)",
+                }}
+              >
+                <label className="form-label" htmlFor="location" style={{ marginBottom: 0 }}>
+                  Ward Area / Street Address in Thane
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={detectCurrentLocation}
+                  disabled={detectingLocation}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  {detectingLocation ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Detecting GPS...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Navigation size={13} style={{ color: "var(--primary-600)" }} />
+                      <span>Auto-Detect Location</span>
+                    </>
+                  )}
+                </button>
+              </div>
               <input
                 id="location"
                 className="form-input"
@@ -295,11 +533,30 @@ export function SubmitComplaint() {
                 }}
               />
               {locationResults.length > 0 && (
-                <div style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", maxHeight: "120px", overflowY: "auto", marginTop: "4px" }}>
+                <div
+                  style={{
+                    backgroundColor: "var(--bg-surface)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: "var(--radius-md)",
+                    maxHeight: "140px",
+                    overflowY: "auto",
+                    marginTop: "4px",
+                    boxShadow: "var(--shadow-md)",
+                    zIndex: 10,
+                  }}
+                >
                   {locationResults.map((loc) => (
                     <div
                       key={loc.name}
-                      style={{ padding: "6px 12px", cursor: "pointer", fontSize: "0.8125rem", borderBottom: "1px solid var(--border-subtle)" }}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        fontSize: "0.8125rem",
+                        borderBottom: "1px solid var(--border-subtle)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
                       onClick={() => {
                         setForm((prev) => ({
                           ...prev,
@@ -310,7 +567,10 @@ export function SubmitComplaint() {
                         setLocationResults([]);
                       }}
                     >
-                      📍 <strong>{loc.name}</strong> ({loc.area}, Ward {loc.ward})
+                      <MapPin size={14} style={{ color: "var(--primary-600)", flexShrink: 0 }} />
+                      <div>
+                        <strong>{loc.name}</strong> ({loc.area}, Ward {loc.ward})
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -318,7 +578,7 @@ export function SubmitComplaint() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Pin Location on Thane Ward Map (Optional)</label>
+              <label className="form-label">Pin Location on Thane Ward Map (Interactive)</label>
               <LocationPicker latitude={form.latitude} longitude={form.longitude} onLocationSelect={handleMapPin} />
             </div>
 
@@ -327,14 +587,33 @@ export function SubmitComplaint() {
               <input type="file" accept="image/jpeg,image/png" onChange={handleImageChange} className="form-input" />
               {imagePreview && (
                 <div style={{ marginTop: "var(--space-2)" }}>
-                  <img src={imagePreview} alt="Preview" style={{ maxHeight: "160px", borderRadius: "var(--radius-md)", objectFit: "cover" }} />
+                  <img
+                    src={imagePreview}
+                    alt="Evidence Preview"
+                    style={{
+                      maxHeight: "180px",
+                      borderRadius: "var(--radius-md)",
+                      objectFit: "cover",
+                      border: "1px solid var(--border-subtle)",
+                    }}
+                  />
                 </div>
               )}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "var(--space-4)" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "var(--space-6)",
+                paddingTop: "var(--space-4)",
+                borderTop: "1px solid var(--border-subtle)",
+              }}
+            >
               <button type="button" className="btn btn-secondary" onClick={() => setStep(1)}>
-                ← Back
+                <ArrowLeft size={16} />
+                <span>Back</span>
               </button>
               <button
                 type="button"
@@ -342,38 +621,126 @@ export function SubmitComplaint() {
                 disabled={checkingDuplicates}
                 onClick={handleProceedToReview}
               >
-                {checkingDuplicates ? "Checking duplicates..." : "Review Submission →"}
+                <span>{checkingDuplicates ? "Checking Duplicates..." : "Review Submission"}</span>
+                <ArrowRight size={16} />
               </button>
             </div>
           </div>
         )}
 
+        {/* Step 3: Review & Submit */}
         {step === 3 && (
-          <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
             {possibleDuplicates.length > 0 && (
-              <div className="card" style={{ backgroundColor: "var(--status-progress-bg)", borderColor: "var(--status-progress-border)", padding: "var(--space-3)" }}>
-                <h4 style={{ color: "var(--status-progress-text)", fontSize: "0.875rem", marginBottom: "4px" }}>
-                  ⚠️ Similar complaints recently reported nearby:
+              <div
+                className="card"
+                style={{
+                  backgroundColor: "var(--status-progress-bg)",
+                  borderColor: "var(--status-progress-border)",
+                  padding: "var(--space-4)",
+                }}
+              >
+                <h4
+                  style={{
+                    color: "var(--status-progress-text)",
+                    fontSize: "0.875rem",
+                    marginBottom: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <AlertTriangle size={16} />
+                  <span>Similar grievances recently reported nearby:</span>
                 </h4>
-                <ul style={{ paddingLeft: "16px", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                <ul style={{ paddingLeft: "20px", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
                   {possibleDuplicates.slice(0, 3).map((d) => (
-                    <li key={d.complaintNumber || d.id}>{d.title} ({d.status}) - {d.location}</li>
+                    <li key={d.complaintNumber || d.id} style={{ marginBottom: "2px" }}>
+                      <strong>{d.title}</strong> ({d.status}) — {d.location}
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            <div className="card" style={{ backgroundColor: "var(--bg-subtle)", padding: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              <div><strong style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>TITLE:</strong> <div>{form.title}</div></div>
-              <div><strong style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>CATEGORY:</strong> <div>{form.category} | Priority: {form.priority}</div></div>
-              <div><strong style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>LOCATION:</strong> <div>{form.location}</div></div>
-              <div><strong style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>DESCRIPTION:</strong> <p style={{ fontSize: "0.875rem" }}>{form.description}</p></div>
-              {imagePreview && <div><strong style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>ATTACHMENT:</strong> 1 image attached</div>}
+            {/* Review Summary Card */}
+            <div
+              style={{
+                backgroundColor: "var(--bg-subtle)",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--border-subtle)",
+                padding: "var(--space-5)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--space-3)",
+              }}
+            >
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+                <div>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                    Category
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: "0.9375rem" }}>{form.category}</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                    Priority
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: "0.9375rem" }}>{form.priority} Priority</div>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                  Title
+                </div>
+                <div style={{ fontWeight: 600, fontSize: "1rem", color: "var(--text-primary)" }}>{form.title}</div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                  Location in Thane
+                </div>
+                <div style={{ fontWeight: 500, fontSize: "0.875rem", color: "var(--text-secondary)" }}>{form.location}</div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                  Description
+                </div>
+                <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "2px", whiteHeight: "1.5" }}>
+                  {form.description}
+                </p>
+              </div>
+
+              {imagePreview && (
+                <div style={{ marginTop: "var(--space-2)" }}>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "4px" }}>
+                    Evidence Attachment
+                  </div>
+                  <img
+                    src={imagePreview}
+                    alt="Evidence"
+                    style={{ maxHeight: "120px", borderRadius: "var(--radius-sm)", objectFit: "cover" }}
+                  />
+                </div>
+              )}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "var(--space-4)" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "var(--space-4)",
+                paddingTop: "var(--space-4)",
+                borderTop: "1px solid var(--border-subtle)",
+              }}
+            >
               <button type="button" className="btn btn-secondary" onClick={() => setStep(2)}>
-                ← Back
+                <ArrowLeft size={16} />
+                <span>Back</span>
               </button>
               <button
                 type="button"
@@ -381,7 +748,8 @@ export function SubmitComplaint() {
                 disabled={submitting}
                 onClick={handleSubmit}
               >
-                {submitting ? "Submitting..." : "Confirm & Lodge Complaint"}
+                <span>{submitting ? "Lodging Complaint..." : "Confirm & Lodge Grievance"}</span>
+                <CheckCircle2 size={18} />
               </button>
             </div>
           </div>

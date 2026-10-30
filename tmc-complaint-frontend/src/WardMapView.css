@@ -125,9 +125,12 @@
   border: 2px solid #ffffff;
 }
 
-.pin-emoji {
-  transform: rotate(45deg);
-  font-size: 14px;
+.pin-inner-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  display: block;
 }
 
 /* Leaflet Popup Styling */

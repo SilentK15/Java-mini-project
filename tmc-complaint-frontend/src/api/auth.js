@@ -1,7 +1,18 @@
-import { AUTH_URL, apiRequest, apiJsonRequest } from "./client.js";
+import { AUTH_URL, apiRequest, apiJsonRequest, setCsrfToken } from "./client.js";
 
 export const getCsrf = async () => {
-  return apiRequest(`${AUTH_URL}/csrf`);
+  try {
+    const res = await apiRequest(`${AUTH_URL}/csrf`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.token) {
+        setCsrfToken(data.token);
+      }
+      return data;
+    }
+  } catch {
+    // Ignore error
+  }
 };
 
 export const login = async (email, password) => {

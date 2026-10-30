@@ -1,4 +1,5 @@
 import { useToast } from "../hooks/useToast.js";
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react";
 
 export function ToastContainer() {
   const { toasts, removeToast } = useToast();
@@ -10,25 +11,25 @@ export function ToastContainer() {
       bg: "var(--status-resolved-bg)",
       text: "var(--status-resolved-text)",
       border: "var(--status-resolved-border)",
-      icon: "✓",
+      icon: <CheckCircle2 size={16} />,
     },
     error: {
       bg: "var(--status-rejected-bg)",
       text: "var(--status-rejected-text)",
       border: "var(--status-rejected-border)",
-      icon: "✕",
+      icon: <AlertCircle size={16} />,
     },
     warning: {
       bg: "var(--status-progress-bg)",
       text: "var(--status-progress-text)",
       border: "var(--status-progress-border)",
-      icon: "⚠️",
+      icon: <AlertTriangle size={16} />,
     },
     info: {
       bg: "var(--status-submitted-bg)",
       text: "var(--status-submitted-text)",
       border: "var(--status-submitted-border)",
-      icon: "ℹ",
+      icon: <Info size={16} />,
     },
   };
 
@@ -79,13 +80,14 @@ export function ToastContainer() {
                 border: "none",
                 color: style.text,
                 cursor: "pointer",
-                padding: "2px 6px",
-                fontSize: "0.875rem",
-                fontWeight: 700,
+                padding: "2px 4px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
               aria-label="Dismiss notification"
             >
-              ✕
+              <X size={14} />
             </button>
           </div>
         );

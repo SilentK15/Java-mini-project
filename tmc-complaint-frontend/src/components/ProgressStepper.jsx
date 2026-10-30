@@ -1,3 +1,5 @@
+import { XCircle, Check } from "lucide-react";
+
 const STEPS = [
   { key: "SUBMITTED", label: "Submitted" },
   { key: "ASSIGNED", label: "Assigned" },
@@ -21,7 +23,7 @@ export function ProgressStepper({ currentStatus, isRejected = false }) {
   if (isRejected) {
     return (
       <div className="card" style={{ padding: "var(--space-4)", backgroundColor: "var(--status-rejected-bg)", borderColor: "var(--status-rejected-border)", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-        <span style={{ fontSize: "1.5rem" }}>🚫</span>
+        <XCircle size={28} style={{ color: "var(--status-rejected-text)", flexShrink: 0 }} />
         <div>
           <h4 style={{ color: "var(--status-rejected-text)" }}>Complaint Rejected</h4>
           <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
@@ -94,7 +96,7 @@ export function ProgressStepper({ currentStatus, isRejected = false }) {
                   boxShadow: isCurrent ? "0 0 0 4px var(--primary-100)" : "none",
                 }}
               >
-                {isDone ? "✓" : idx + 1}
+                {isDone ? <Check size={14} strokeWidth={3} /> : idx + 1}
               </div>
               <span
                 style={{

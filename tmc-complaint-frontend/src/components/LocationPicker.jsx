@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { MapPin } from "lucide-react";
 
 // Fix Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -75,6 +76,7 @@ export function LocationPicker({ latitude, longitude, onLocationSelect }) {
     if (latitude && longitude) {
       const lat = Number(latitude);
       const lng = Number(longitude);
+      mapInstanceRef.current.panTo([lat, lng]);
       if (markerRef.current) {
         markerRef.current.setLatLng([lat, lng]);
       } else {
@@ -101,7 +103,10 @@ export function LocationPicker({ latitude, longitude, onLocationSelect }) {
         }}
       />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-        <span>📍 Click or drag pin to mark exact issue location</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+          <MapPin size={13} />
+          Click or drag pin to mark exact issue location
+        </span>
         {latitude && longitude ? (
           <span>{latitude}, {longitude}</span>
         ) : (

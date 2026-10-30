@@ -55,7 +55,6 @@ describe("Phase 3 Frontend Components & Workflows", () => {
     const onAction = vi.fn();
     render(
       <EmptyState
-        icon="📋"
         title="No records"
         description="Nothing here"
         actionText="Click me"

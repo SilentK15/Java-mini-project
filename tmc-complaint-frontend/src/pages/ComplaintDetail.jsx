@@ -7,6 +7,7 @@ import { PriorityBadge } from "../components/PriorityBadge.jsx";
 import { ProgressStepper } from "../components/ProgressStepper.jsx";
 import { Timeline } from "../components/Timeline.jsx";
 import { Skeleton } from "../components/Skeleton.jsx";
+import { Star, ArrowLeft, Send, CheckCircle2, AlertTriangle, ShieldCheck, MapPin } from "lucide-react";
 import {
   getComplaintById,
   getComplaintHistory,
@@ -127,7 +128,7 @@ export function ComplaintDetail() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      <div style={{ maxWidth: "860px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         <Skeleton height="36px" width="50%" />
         <Skeleton height="120px" width="100%" />
         <Skeleton height="200px" width="100%" />
@@ -152,74 +153,162 @@ export function ComplaintDetail() {
 
   return (
     <div style={{ maxWidth: "860px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "var(--space-3)" }}>
+      {/* Header bar */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+          gap: "var(--space-4)",
+        }}
+      >
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-1)" }}>
-            <span style={{ fontFamily: "monospace", fontSize: "1.125rem", fontWeight: 700, color: "var(--primary-600)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-2)" }}>
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "1rem",
+                fontWeight: 700,
+                color: "var(--primary-600)",
+                backgroundColor: "var(--primary-50)",
+                padding: "3px 10px",
+                borderRadius: "var(--radius-sm)",
+              }}
+            >
               {complaint.complaintNumber}
             </span>
             <PriorityBadge priority={complaint.priority} />
             <StatusBadge status={complaint.status} />
           </div>
-          <h1 style={{ fontSize: "1.75rem" }}>{complaint.title}</h1>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "4px" }}>
-            Reported in <strong>{complaint.location}</strong> • Department: <strong>{complaint.department || "General"}</strong>
-          </p>
+
+          <h1 style={{ fontSize: "1.625rem", letterSpacing: "-0.02em" }}>{complaint.title}</h1>
+
+          <div
+            style={{
+              fontSize: "0.875rem",
+              color: "var(--text-muted)",
+              marginTop: "4px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <MapPin size={14} style={{ color: "var(--primary-600)" }} />
+              <strong>{complaint.location}</strong>
+            </span>
+            <span>&bull;</span>
+            <span>Department: <strong>{(complaint.department || "General").replace("_", " ")}</strong></span>
+          </div>
         </div>
-        <Link to="/dashboard" className="btn btn-secondary btn-sm">← Back to List</Link>
+
+        <Link to="/dashboard" className="btn btn-secondary btn-sm" style={{ height: "36px" }}>
+          <ArrowLeft size={15} />
+          <span>Back to List</span>
+        </Link>
       </div>
 
-      {/* Progress Stepper */}
-      <ProgressStepper currentStatus={complaint.status} isRejected={isRejected} />
+      {/* Progress Stepper Card */}
+      <div className="card" style={{ padding: "var(--space-5)" }}>
+        <ProgressStepper currentStatus={complaint.status} isRejected={isRejected} />
+      </div>
 
-      {/* Description & Evidence photos */}
+      {/* Description & Evidence */}
       <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-        <h2 style={{ fontSize: "1.125rem" }}>Issue Details</h2>
-        <p style={{ fontSize: "0.9375rem", lineHeight: 1.6 }}>{complaint.description}</p>
+        <h2 style={{ fontSize: "1.125rem" }}>Issue Description & Evidence</h2>
+        <p style={{ fontSize: "0.9375rem", lineHeight: 1.6, color: "var(--text-primary)" }}>
+          {complaint.description}
+        </p>
 
-        {/* Photos */}
-        <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap", marginTop: "var(--space-2)" }}>
-          {complaint.imageUrl && (
-            <div style={{ flex: "1 1 240px" }}>
-              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "4px" }}>INITIAL EVIDENCE</div>
-              <img src={`${API_ROOT}${complaint.imageUrl}`} alt="Initial Evidence" style={{ width: "100%", maxHeight: "200px", objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }} />
-            </div>
-          )}
-          {complaint.resolutionImageUrl && (
-            <div style={{ flex: "1 1 240px" }}>
-              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--status-resolved-text)", marginBottom: "4px" }}>RESOLUTION EVIDENCE (WORK DONE)</div>
-              <img src={`${API_ROOT}${complaint.resolutionImageUrl}`} alt="Resolution Evidence" style={{ width: "100%", maxHeight: "200px", objectFit: "cover", borderRadius: "var(--radius-md)", border: "1px solid var(--status-resolved-border)" }} />
-            </div>
-          )}
-        </div>
+        {/* Evidence Photos Grid */}
+        {(complaint.imageUrl || complaint.resolutionImageUrl) && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "var(--space-4)", marginTop: "var(--space-2)" }}>
+            {complaint.imageUrl && (
+              <div style={{ backgroundColor: "var(--bg-subtle)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
+                  Initial Grievance Evidence
+                </div>
+                <img
+                  src={`${API_ROOT}${complaint.imageUrl}`}
+                  alt="Initial Evidence"
+                  style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "var(--radius-sm)" }}
+                />
+              </div>
+            )}
+
+            {complaint.resolutionImageUrl && (
+              <div style={{ backgroundColor: "var(--status-resolved-bg)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--status-resolved-border)" }}>
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--status-resolved-text)", textTransform: "uppercase", marginBottom: "6px" }}>
+                  Work Done Resolution Proof
+                </div>
+                <img
+                  src={`${API_ROOT}${complaint.resolutionImageUrl}`}
+                  alt="Resolution Evidence"
+                  style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "var(--radius-sm)" }}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Staff & Admin Actions */}
       {(isStaff || isAdmin) && !isResolved && (
-        <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", borderLeft: "4px solid var(--primary-500)" }}>
-          <h2 style={{ fontSize: "1.125rem" }}>Staff Actions</h2>
+        <div
+          className="card"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-4)",
+            borderLeft: "4px solid var(--primary-600)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <ShieldCheck size={18} style={{ color: "var(--primary-600)" }} />
+            <h2 style={{ fontSize: "1.125rem" }}>Staff Redressal Action Panel</h2>
+          </div>
+
           <form onSubmit={handleUpdateStatus} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-            <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
-              <select className="form-select" style={{ flex: "1 1 180px" }} value={newStatus} onChange={(e) => setNewStatus(e.target.value)} required>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-3)" }}>
+              <select
+                className="form-select"
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+                required
+                style={{ height: "42px" }}
+              >
                 <option value="">-- Change Status --</option>
-                <option value="ASSIGNED">Assign to Field Staff</option>
+                <option value="ASSIGNED">Assign to Field Squad</option>
                 <option value="IN_PROGRESS">Mark In Progress</option>
-                <option value="RESOLVED">Mark Resolved (Upload evidence)</option>
+                <option value="RESOLVED">Mark Resolved (Attach completion photo)</option>
                 <option value="REJECTED">Reject Grievance</option>
               </select>
-              <input className="form-input" style={{ flex: "2 1 240px" }} placeholder="Reason / resolution notes..." value={statusReason} onChange={(e) => setStatusReason(e.target.value)} />
+
+              <input
+                className="form-input"
+                placeholder="Reason or field notes..."
+                value={statusReason}
+                onChange={(e) => setStatusReason(e.target.value)}
+                style={{ height: "42px" }}
+              />
             </div>
 
             {newStatus === "RESOLVED" && (
-              <div className="form-group">
-                <label className="form-label">Completion Proof Photo (JPG/PNG)</label>
+              <div className="form-group animate-fade-in" style={{ marginTop: "4px" }}>
+                <label className="form-label">Completion Proof Photo (Required for SLA Verification)</label>
                 <input type="file" accept="image/*" className="form-input" onChange={(e) => setEvidenceFile(e.target.files?.[0])} />
               </div>
             )}
 
-            <button type="submit" disabled={updatingStatus || !newStatus} className="btn btn-primary" style={{ alignSelf: "flex-end" }}>
-              {updatingStatus ? "Updating..." : "Submit Status Change"}
+            <button
+              type="submit"
+              disabled={updatingStatus || !newStatus}
+              className="btn btn-primary"
+              style={{ alignSelf: "flex-end", height: "40px" }}
+            >
+              {updatingStatus ? "Updating Status..." : "Submit Status Change"}
             </button>
           </form>
         </div>
@@ -227,62 +316,112 @@ export function ComplaintDetail() {
 
       {/* Citizen Feedback or Appeal if resolved */}
       {isCitizen && isResolved && !complaint.citizenRating && (
-        <div className="card" style={{ backgroundColor: "var(--status-resolved-bg)", borderColor: "var(--status-resolved-border)" }}>
-          <h3>Citizen Verification & Rating</h3>
-          <p style={{ fontSize: "0.875rem", marginBottom: "var(--space-3)" }}>Please rate the resolution quality performed by TMC engineers.</p>
+        <div className="card" style={{ backgroundColor: "var(--status-resolved-bg)", borderColor: "var(--status-resolved-border)", padding: "var(--space-6)" }}>
+          <h3 style={{ fontSize: "1.125rem", color: "var(--status-resolved-text)" }}>Citizen Verification & Rating</h3>
+          <p style={{ fontSize: "0.875rem", marginBottom: "var(--space-4)", color: "var(--text-secondary)" }}>
+            Please verify the quality of municipal work completed by TMC field engineers.
+          </p>
+
           <form onSubmit={handleFeedback} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-            <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
               {[1, 2, 3, 4, 5].map((s) => (
-                <button type="button" key={s} className="btn btn-secondary btn-sm" style={{ backgroundColor: rating === s ? "var(--accent-500)" : "var(--bg-surface)", color: rating === s ? "#fff" : "var(--text-primary)" }} onClick={() => setRating(s)}>
-                  {"⭐".repeat(s)} ({s})
+                <button
+                  type="button"
+                  key={s}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: rating === s ? "var(--accent-500)" : "var(--bg-surface)",
+                    color: rating === s ? "#ffffff" : "var(--text-primary)",
+                    border: rating === s ? "1px solid var(--accent-600)" : "1px solid var(--border-default)",
+                    height: "34px",
+                  }}
+                  onClick={() => setRating(s)}
+                >
+                  <Star size={14} fill={rating === s ? "#ffffff" : "none"} />
+                  <span>{s} {s === 1 ? "Star" : "Stars"}</span>
                 </button>
               ))}
             </div>
-            <textarea className="form-textarea" rows={2} placeholder="Optional citizen comments..." value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
-            <button type="submit" className="btn btn-primary" style={{ alignSelf: "flex-start" }}>Submit Rating</button>
+
+            <textarea
+              className="form-textarea"
+              rows={2}
+              placeholder="Optional citizen feedback comments..."
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+            />
+
+            <button type="submit" className="btn btn-primary" style={{ alignSelf: "flex-start", height: "38px" }}>
+              Submit Rating & Verify
+            </button>
           </form>
         </div>
       )}
 
-      {/* Citizen Reopen / Appeal if resolved or rejected */}
+      {/* Citizen Reopen appeal if resolved or rejected */}
       {isCitizen && (isResolved || isRejected) && (
-        <div className="card" style={{ backgroundColor: "var(--bg-subtle)" }}>
+        <div className="card" style={{ backgroundColor: "var(--bg-subtle)", padding: "var(--space-5)" }}>
           <h3 style={{ fontSize: "1rem" }}>Not satisfied with the resolution?</h3>
-          <p style={{ fontSize: "0.875rem", marginBottom: "var(--space-3)" }}>
-            You can request a re-inspection from the municipal ward supervisor.
+          <p style={{ fontSize: "0.875rem", marginBottom: "var(--space-3)", color: "var(--text-secondary)" }}>
+            You can request an escalation re-inspection from the municipal ward supervisor.
           </p>
+
           <form onSubmit={handleReopen} style={{ display: "flex", gap: "var(--space-2)" }}>
             <input
               className="form-input"
-              placeholder="State reason for reopening grievance..."
+              placeholder="State reason why issue is unresolved..."
               value={reopenReason}
               onChange={(e) => setReopenReason(e.target.value)}
               required
+              style={{ height: "40px" }}
             />
-            <button type="submit" className="btn btn-secondary" style={{ flexShrink: 0 }}>
+            <button type="submit" className="btn btn-secondary" style={{ flexShrink: 0, height: "40px" }}>
               Request Reopen
             </button>
           </form>
         </div>
       )}
 
-      {/* Internal notes (Staff / Admin only) */}
+      {/* Internal notes (Staff / Admin) */}
       {(isStaff || isAdmin) && (
-        <div className="card">
+        <div className="card" style={{ padding: "var(--space-6)" }}>
           <h2 style={{ fontSize: "1.125rem", marginBottom: "var(--space-3)" }}>Internal Department Notes</h2>
+
           <form onSubmit={handleAddNote} style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
-            <input className="form-input" placeholder="Add confidential team note..." value={newNote} onChange={(e) => setNewNote(e.target.value)} />
-            <button type="submit" disabled={submittingNote || !newNote.trim()} className="btn btn-secondary">Add</button>
+            <input
+              className="form-input"
+              placeholder="Add confidential team note..."
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              style={{ height: "40px" }}
+            />
+            <button
+              type="submit"
+              disabled={submittingNote || !newNote.trim()}
+              className="btn btn-secondary"
+              style={{ height: "40px" }}
+            >
+              Add
+            </button>
           </form>
+
           {notes.length === 0 ? (
-            <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>No internal notes yet.</p>
+            <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>No internal notes added yet.</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
               {notes.map((n) => (
-                <div key={n.id} style={{ padding: "8px 12px", backgroundColor: "var(--bg-subtle)", borderRadius: "var(--radius-sm)", fontSize: "0.875rem" }}>
+                <div
+                  key={n.id}
+                  style={{
+                    padding: "10px 14px",
+                    backgroundColor: "var(--bg-subtle)",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   <div>{n.note}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                    {n.authorRole || "STAFF"} • {new Date(n.createdAt).toLocaleString()}
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                    {n.authorRole || "STAFF"} &bull; {new Date(n.createdAt).toLocaleString()}
                   </div>
                 </div>
               ))}
@@ -292,8 +431,8 @@ export function ComplaintDetail() {
       )}
 
       {/* Timeline */}
-      <div className="card">
-        <h2 style={{ fontSize: "1.125rem", marginBottom: "var(--space-4)" }}>Grievance Progress Timeline</h2>
+      <div className="card" style={{ padding: "var(--space-6)" }}>
+        <h2 style={{ fontSize: "1.125rem", marginBottom: "var(--space-4)" }}>Grievance Progress Audit Trail</h2>
         <Timeline items={history} />
       </div>
     </div>

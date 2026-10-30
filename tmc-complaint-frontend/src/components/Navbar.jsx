@@ -1,39 +1,28 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
+import { Landmark, Search, LogOut, PlusCircle, LayoutDashboard, BarChart3, Users } from "lucide-react";
 
 export function Navbar({ onOpenTracker, currentLanguage = "en", onLanguageChange }) {
   const { user, isCitizen, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
-
-  const [darkMode, setDarkMode] = useState(() => {
-    try {
-      const saved = localStorage.getItem("civicconnect_theme");
-      if (saved) return saved === "dark";
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
-    } catch {
-      return false;
-    }
-  });
+  const location = useLocation();
 
   useEffect(() => {
     try {
-      if (darkMode) {
-        document.documentElement.setAttribute("data-theme", "dark");
-        localStorage.setItem("civicconnect_theme", "dark");
-      } else {
-        document.documentElement.removeAttribute("data-theme");
-        localStorage.setItem("civicconnect_theme", "light");
-      }
+      document.documentElement.removeAttribute("data-theme");
+      localStorage.removeItem("civicconnect_theme");
     } catch {
       // Ignore localStorage errors
     }
-  }, [darkMode]);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
     navigate("/");
   };
+
+  const isActive = (path) => location.pathname === path;
 
   return (
     <header
@@ -43,7 +32,8 @@ export function Navbar({ onOpenTracker, currentLanguage = "en", onLanguageChange
         position: "sticky",
         top: 0,
         zIndex: 100,
-        boxShadow: "var(--shadow-sm)",
+        boxShadow: "var(--shadow-xs)",
+        backdropFilter: "blur(8px)",
       }}
     >
       <div
@@ -52,98 +42,191 @@ export function Navbar({ onOpenTracker, currentLanguage = "en", onLanguageChange
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          height: "64px",
-          gap: "var(--space-4)",
+          height: "var(--navbar-height)",
+          flexDirection: "row",
         }}
       >
+        {/* Brand Logo & Main Nav */}
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-6)" }}>
-          <Link to="/" style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", textDecoration: "none" }}>
-            <span style={{ fontSize: "1.5rem" }}>🏛️</span>
+          <Link
+            to="/"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-3)",
+              textDecoration: "none",
+            }}
+          >
+            <div
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "var(--radius-md)",
+                background: "linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 2px 6px rgba(29, 78, 216, 0.25)",
+              }}
+            >
+              <Landmark size={20} />
+            </div>
             <div>
-              <span style={{ fontWeight: 800, fontSize: "1.125rem", color: "var(--primary-700)", letterSpacing: "-0.02em" }}>
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: "1.125rem",
+                  color: "var(--text-primary)",
+                  letterSpacing: "-0.03em",
+                  lineHeight: 1.1,
+                }}
+              >
                 CivicConnect
-              </span>
-              <span style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                THANE MUNICIPAL CORP
+              </div>
+              <span
+                style={{
+                  display: "inline-block",
+                  fontSize: "0.625rem",
+                  color: "var(--primary-600)",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Thane Municipal Corp
               </span>
             </div>
           </Link>
 
-          <nav style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-            {user ? (
-              <>
-                <Link to="/dashboard" className="btn btn-secondary btn-sm">
-                  Dashboard
+          {/* Navigation Links for Logged-in Users */}
+          {user && (
+            <nav
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-2)",
+              }}
+            >
+              <Link
+                to="/dashboard"
+                className={`btn btn-sm ${isActive("/dashboard") ? "btn-primary" : "btn-ghost"}`}
+                style={{ height: "34px" }}
+              >
+                <LayoutDashboard size={14} />
+                <span>Dashboard</span>
+              </Link>
+
+              {isCitizen && (
+                <Link
+                  to="/submit"
+                  className={`btn btn-sm ${isActive("/submit") ? "btn-accent" : "btn-ghost"}`}
+                  style={{ height: "34px" }}
+                >
+                  <PlusCircle size={14} />
+                  <span>Lodge Complaint</span>
                 </Link>
-                {isCitizen && (
-                  <Link to="/submit" className="btn btn-primary btn-sm">
-                    + Lodge Complaint
+              )}
+
+              {isAdmin && (
+                <>
+                  <Link
+                    to="/admin/analytics"
+                    className={`btn btn-sm ${isActive("/admin/analytics") ? "btn-primary" : "btn-ghost"}`}
+                    style={{ height: "34px" }}
+                  >
+                    <BarChart3 size={14} />
+                    <span>Analytics</span>
                   </Link>
-                )}
-                {isAdmin && (
-                  <>
-                    <Link to="/admin/analytics" className="btn btn-secondary btn-sm">
-                      Analytics
-                    </Link>
-                    <Link to="/admin/staff" className="btn btn-secondary btn-sm">
-                      Staff
-                    </Link>
-                  </>
-                )}
-              </>
-            ) : null}
-          </nav>
+                  <Link
+                    to="/admin/staff"
+                    className={`btn btn-sm ${isActive("/admin/staff") ? "btn-primary" : "btn-ghost"}`}
+                    style={{ height: "34px" }}
+                  >
+                    <Users size={14} />
+                    <span>Staff</span>
+                  </Link>
+                </>
+              )}
+            </nav>
+          )}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+        {/* Right Actions Toolbar */}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          {/* Quick Track Button */}
           {onOpenTracker && (
             <button
               onClick={onOpenTracker}
               className="btn btn-secondary btn-sm"
               title="Track Public Complaint"
+              style={{ height: "34px", padding: "0 12px" }}
             >
-              🔍 Track
+              <Search size={14} />
+              <span>Track</span>
             </button>
           )}
 
-          {/* Language selector */}
-          <select
-            value={currentLanguage}
-            onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
-            className="form-select"
-            style={{ width: "auto", padding: "4px 8px", fontSize: "0.8125rem" }}
-            aria-label="Select Language"
-          >
-            <option value="en">English</option>
-            <option value="mr">मराठी</option>
-            <option value="hi">हिन्दी</option>
-          </select>
-
-          {/* Dark mode toggle */}
-          <button
-            onClick={() => setDarkMode((prev) => !prev)}
-            className="btn btn-secondary btn-sm"
-            style={{ width: "34px", height: "34px", padding: 0 }}
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? "☀️" : "🌙"}
-          </button>
-
+          {/* User Section */}
           {user ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-secondary)" }}>
-                {user.name || user.email}
-              </span>
-              <button onClick={handleLogout} className="btn btn-secondary btn-sm">
-                Sign out
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginLeft: "var(--space-1)" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-2)",
+                  padding: "4px 10px",
+                  borderRadius: "var(--radius-md)",
+                  backgroundColor: "var(--bg-subtle)",
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                }}
+              >
+                <div
+                  style={{
+                    width: "22px",
+                    height: "22px",
+                    borderRadius: "50%",
+                    backgroundColor: "var(--primary-600)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.6875rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {(user.name || user.email || "U").charAt(0).toUpperCase()}
+                </div>
+                <span
+                  style={{
+                    color: "var(--text-primary)",
+                    maxWidth: "140px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {user.name || user.email}
+                </span>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="btn btn-secondary btn-sm"
+                title="Sign out"
+                style={{ height: "34px" }}
+              >
+                <LogOut size={13} />
+                <span>Sign out</span>
               </button>
             </div>
           ) : (
-            <div style={{ display: "flex", gap: "var(--space-2)" }}>
-              <Link to="/login" className="btn btn-secondary btn-sm">
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <Link to="/login" className="btn btn-secondary btn-sm" style={{ height: "34px" }}>
                 Sign in
               </Link>
-              <Link to="/register" className="btn btn-primary btn-sm">
+              <Link to="/register" className="btn btn-primary btn-sm" style={{ height: "34px" }}>
                 Register
               </Link>
             </div>

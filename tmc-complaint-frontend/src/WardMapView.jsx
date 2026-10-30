@@ -14,29 +14,29 @@ L.Icon.Default.mergeOptions({
 
 const THANE_CENTER = [19.1932, 72.9647]; // Thane Municipal Corp (Panchpakhadi)
 
-function createCustomPin(color, iconEmoji) {
+function createCustomPin(color) {
   return L.divIcon({
     className: "custom-map-pin",
     html: `<div class="pin-marker" style="background-color: ${color};">
-            <span class="pin-emoji">${iconEmoji}</span>
+            <span class="pin-inner-dot"></span>
            </div>
            <div class="pin-pulse" style="border-color: ${color};"></div>`,
-    iconSize: [32, 42],
-    iconAnchor: [16, 42],
-    popupAnchor: [0, -38],
+    iconSize: [28, 38],
+    iconAnchor: [14, 38],
+    popupAnchor: [0, -34],
   });
 }
 
 const PIN_STYLES = {
-  SUBMITTED: { color: "#dc2626", emoji: "🔴" },
-  IN_PROGRESS: { color: "#d97706", emoji: "🟠" },
-  RESOLVED: { color: "#16a34a", emoji: "🟢" },
-  REOPEN_REQUESTED: { color: "#9333ea", emoji: "🟣" },
+  SUBMITTED: { color: "#dc2626" },
+  IN_PROGRESS: { color: "#d97706" },
+  RESOLVED: { color: "#16a34a" },
+  REOPEN_REQUESTED: { color: "#9333ea" },
 };
 
 export function WardMapView({
   complaints = [],
-  uiCopy,
+  uiCopy = {},
   onSelectComplaint,
   formatDepartment,
 }) {
@@ -124,8 +124,8 @@ export function WardMapView({
     const bounds = [];
 
     filteredComplaints.forEach((comp) => {
-      const pinCfg = PIN_STYLES[comp.status] || { color: "#475569", emoji: "📍" };
-      const markerIcon = createCustomPin(pinCfg.color, pinCfg.emoji);
+      const pinCfg = PIN_STYLES[comp.status] || { color: "#475569" };
+      const markerIcon = createCustomPin(pinCfg.color);
       const marker = L.marker([comp.lat, comp.lon], { icon: markerIcon });
 
       const popupContent = document.createElement("div");
@@ -136,10 +136,10 @@ export function WardMapView({
           <span class="popup-status" style="background:${pinCfg.color}20; color:${pinCfg.color};">${comp.status}</span>
         </div>
         <h4 class="popup-title">${comp.title || "Civic Grievance"}</h4>
-        <p class="popup-loc">📍 ${comp.location || "Thane"}</p>
+        <p class="popup-loc">${comp.location || "Thane"}</p>
         <div class="popup-meta">
-          <span>🏢 ${comp.department ? comp.department.replace(/_/g, " ") : "Municipal Dept"}</span>
-          <span>⚡ ${comp.priority || "MEDIUM"} Priority</span>
+          <span>${comp.department ? comp.department.replace(/_/g, " ") : "Municipal Dept"}</span>
+          <span>${comp.priority || "MEDIUM"} Priority</span>
         </div>
         <button class="popup-btn" id="view-comp-${comp.id}">View Full Details →</button>
       `;
@@ -169,27 +169,27 @@ export function WardMapView({
       {/* Map Control Header */}
       <div className="ward-map-header">
         <div>
-          <p className="section-label">{uiCopy.navWardMap || "WARD MAP VIEW"}</p>
-          <h2 className="ward-map-title">{uiCopy.wardMapTitle || "Interactive TMC Ward Grievance Map"}</h2>
+          <p className="section-label">{uiCopy?.navWardMap || "WARD MAP VIEW"}</p>
+          <h2 className="ward-map-title">{uiCopy?.wardMapTitle || "Interactive TMC Ward Grievance Map"}</h2>
           <p className="card-description">
-            {uiCopy.wardMapDesc || "Geospatial visualization of civic complaints across Thane Municipal Corporation wards."}
+            {uiCopy?.wardMapDesc || "Geospatial visualization of civic complaints across Thane Municipal Corporation wards."}
           </p>
         </div>
         <button type="button" className="text-button" onClick={handleResetCenter}>
-          🎯 Center on TMC HQ
+          Center on TMC HQ
         </button>
       </div>
 
       {/* Filter Toolbar */}
       <div className="map-toolbar">
         <div className="map-filter-group">
-          <label htmlFor="map-ward-filter">{uiCopy.mapFilterWard || "Filter by Ward:"}</label>
+          <label htmlFor="map-ward-filter">{uiCopy?.mapFilterWard || "Filter by Ward:"}</label>
           <select
             id="map-ward-filter"
             value={selectedWard}
             onChange={(e) => setSelectedWard(e.target.value)}
           >
-            <option value="ALL">{uiCopy.mapAllWards || "All Thane Wards"}</option>
+            <option value="ALL">{uiCopy?.mapAllWards || "All Thane Wards"}</option>
             {THANE_WARDS.map((w) => (
               <option key={w} value={w}>{w}</option>
             ))}
@@ -197,7 +197,7 @@ export function WardMapView({
         </div>
 
         <div className="map-filter-group">
-          <label htmlFor="map-dept-filter">{uiCopy.mapFilterDept || "Department:"}</label>
+          <label htmlFor="map-dept-filter">{uiCopy?.mapFilterDept || "Department:"}</label>
           <select
             id="map-dept-filter"
             value={selectedDept}
@@ -213,7 +213,7 @@ export function WardMapView({
         </div>
 
         <div className="map-filter-group">
-          <label htmlFor="map-status-filter">{uiCopy.mapFilterStatus || "Status:"}</label>
+          <label htmlFor="map-status-filter">{uiCopy?.mapFilterStatus || "Status:"}</label>
           <select
             id="map-status-filter"
             value={selectedStatus}
@@ -228,7 +228,7 @@ export function WardMapView({
         </div>
 
         <div className="map-stats-pill">
-          <strong>{filteredComplaints.length}</strong> {uiCopy.mapTotalPins || "Complaints Mapped"}
+          <strong>{filteredComplaints.length}</strong> {uiCopy?.mapTotalPins || "Complaints Mapped"}
         </div>
       </div>
 
@@ -245,7 +245,7 @@ export function WardMapView({
         <div ref={mapContainerRef} className="map-canvas" />
       </div>
       <p className="map-footer-hint">
-        💡 {uiCopy.mapClickPinHint || "Click any marker to inspect complaint summary, SLA urgency, and quick actions."}
+        {uiCopy?.mapClickPinHint || "Click any marker to inspect complaint summary, SLA urgency, and quick actions."}
       </p>
     </div>
   );

@@ -43,24 +43,21 @@ public class DemoDataSeeder {
             PasswordEncoder encoder
     ) {
         return args -> {
+            String hash = encoder.encode(DEMO_PASSWORD);
+
+            // Always ensure demo accounts exist under demo profile
+            AppUser citizen1 = ensureUser(users, "Priya Sharma",  "citizen1@demo.tmc",  hash, UserRole.CITIZEN, null);
+            AppUser citizen2 = ensureUser(users, "Rahul Mehta",   "citizen2@demo.tmc",  hash, UserRole.CITIZEN, null);
+            ensureUser(users, "Inspector Patil", "staff1@demo.tmc",  hash, UserRole.STAFF,   Department.PUBLIC_WORKS);
+            ensureUser(users, "Officer Desai",   "staff2@demo.tmc",  hash, UserRole.STAFF,   Department.SOLID_WASTE);
+            ensureUser(users, "Demo Admin",      "admin@demo.tmc",   hash, UserRole.ADMIN,   null);
+
             if (complaints.count() > 0) {
-                log.info("[DEMO] Demo data already present — skipping seeder");
+                log.info("[DEMO] Complaints already present — skipping complaint seeding");
                 return;
             }
 
-            log.info("[DEMO] Seeding demo accounts and complaints …");
-            String hash = encoder.encode(DEMO_PASSWORD);
-
-            // ── Demo citizens ────────────────────────────────────────────────────
-            AppUser citizen1 = ensureUser(users, "Priya Sharma",  "citizen1@demo.tmc",  hash, UserRole.CITIZEN, null);
-            AppUser citizen2 = ensureUser(users, "Rahul Mehta",   "citizen2@demo.tmc",  hash, UserRole.CITIZEN, null);
-
-            // ── Demo staff ───────────────────────────────────────────────────────
-            ensureUser(users, "Inspector Patil", "staff1@demo.tmc",  hash, UserRole.STAFF,   Department.PUBLIC_WORKS);
-            ensureUser(users,              "Officer Desai",          "staff2@demo.tmc",  hash, UserRole.STAFF,   Department.SOLID_WASTE);
-            ensureUser(users,              "Demo Admin",             "admin@demo.tmc",   hash, UserRole.ADMIN,   null);
-
-            // ── Demo complaints ──────────────────────────────────────────────────
+            log.info("[DEMO] Seeding demo complaints …");
             LocalDateTime now = LocalDateTime.now();
 
             seedComplaint(complaints, numberGenerator,
