@@ -176,6 +176,10 @@ public class ComplaintService {
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint not found"));
     }
 
+    public Complaint getComplaintByIdOrNumber(Long id) {
+        return getComplaintById(id);
+    }
+
     public Complaint getComplaintByIdOrNumber(String idOrNumber) {
         if (idOrNumber == null || idOrNumber.isBlank()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint not found");
