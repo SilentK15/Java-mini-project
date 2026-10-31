@@ -52,11 +52,18 @@ export const submitComplaint = async (formData, idempotencyKey) => {
   });
 };
 
-export const checkDuplicates = async ({ category, description, location }) => {
+export const checkDuplicates = async ({ title, category, description, location, latitude, longitude }) => {
   return apiJsonRequest(`${API_URL}/possible-duplicates`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ category, description, location }),
+    body: JSON.stringify({
+      title: title || description || "",
+      description: description || title || "",
+      category: category || "OTHER",
+      location: location || "",
+      latitude: latitude != null && latitude !== "" && !isNaN(Number(latitude)) ? Number(latitude) : null,
+      longitude: longitude != null && longitude !== "" && !isNaN(Number(longitude)) ? Number(longitude) : null,
+    }),
   });
 };
 

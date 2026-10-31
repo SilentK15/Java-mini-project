@@ -226,13 +226,19 @@ export function SubmitComplaint() {
     setCheckingDuplicates(true);
     try {
       const dups = await checkDuplicates({
+        title: form.title,
         category: form.category,
         description: form.description,
         location: form.location,
+        latitude: form.latitude,
+        longitude: form.longitude,
       });
-      if (Array.isArray(dups) && dups.length > 0) {
-        setPossibleDuplicates(dups);
+      const list = Array.isArray(dups) ? dups : dups?.duplicates || [];
+      if (list.length > 0) {
+        setPossibleDuplicates(list);
         warning("Possible duplicate complaints detected in your area.");
+      } else {
+        setPossibleDuplicates([]);
       }
     } catch {
       // Continue even if duplicate check fails

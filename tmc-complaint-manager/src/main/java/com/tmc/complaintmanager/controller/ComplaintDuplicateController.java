@@ -12,13 +12,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import java.util.List;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/complaints")
-@PreAuthorize("hasRole('CITIZEN')")
+@PreAuthorize("hasAnyRole('CITIZEN', 'ADMIN', 'STAFF', 'FIELD_STAFF', 'DEPARTMENT_OFFICER', 'SUPERVISOR')")
 public class ComplaintDuplicateController {
     private final ComplaintDuplicateDetectionService duplicateDetection;
 
@@ -27,27 +28,27 @@ public class ComplaintDuplicateController {
     }
 
     @PostMapping("/possible-duplicates")
-    public DuplicateCheckResult possibleDuplicates(@Valid @RequestBody DuplicateCheckRequest request) {
-        if ((request.latitude() == null) != (request.longitude() == null)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Provide both GPS coordinates or leave both blank");
-        }
+    public List<ComplaintDuplicateDetectionService.Suggestion> possibleDuplicates(@RequestBody DuplicateCheckRequest request) {
+        String category = request.category() != null ? request.category().trim().toUpperCase(java.util.Locale.ROOT) : "OTHER";
+        String title = request.title() != null ? request.title().trim() : "";
+        String description = request.description() != null ? request.description().trim() : title;
+        String location = request.location() != null ? request.location().trim() : "";
+
         Complaint draft = new Complaint();
-        draft.setTitle(request.title().trim());
-        draft.setDescription(request.description().trim());
-        draft.setCategory(request.category().trim().toUpperCase(java.util.Locale.ROOT));
-        draft.setLocation(request.location().trim());
+        draft.setTitle(title);
+        draft.setDescription(description);
+        draft.setCategory(category);
+        draft.setLocation(location);
         draft.setLatitude(request.latitude());
         draft.setLongitude(request.longitude());
-        return new DuplicateCheckResult(!duplicateDetection.findPossibleDuplicates(draft).isEmpty());
+        return duplicateDetection.findPossibleDuplicates(draft);
     }
 
     public record DuplicateCheckRequest(
-            @NotBlank @Size(max = 150) String title,
-            @NotBlank @Size(max = 2000) String description,
-            @NotBlank @Pattern(regexp = "(?i)ROAD|GARBAGE|WATER|ELECTRICITY|STREET_LIGHT|DRAINAGE|OTHER") String category,
-            @NotBlank @Size(max = 255) String location,
-            @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,
-            @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude) {}
-
-    public record DuplicateCheckResult(boolean possibleMatch) {}
+            String title,
+            String description,
+            String category,
+            String location,
+            Double latitude,
+            Double longitude) {}
 }

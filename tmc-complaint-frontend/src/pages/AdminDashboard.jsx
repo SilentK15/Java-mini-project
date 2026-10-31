@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
 import { getDepartmentAnalytics, exportComplaintsCsv } from "../api/admin.js";
@@ -41,6 +41,18 @@ export function AdminDashboard() {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [resolutionReason, setResolutionReason] = useState("");
   const [resolving, setResolving] = useState(false);
+
+  // Duplicate Cluster Detection: group tickets by category and location
+  const duplicateClusters = useMemo(() => {
+    const map = new Map();
+    complaints.forEach((c) => {
+      if (!c.location || !c.category) return;
+      const key = `${c.category.toUpperCase()}::${c.location.trim().toLowerCase()}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(c);
+    });
+    return map;
+  }, [complaints]);
 
   const loadDashboardData = async () => {
     try {
@@ -371,39 +383,66 @@ export function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredComplaints.map((c) => (
-                  <tr key={c.id || c.complaintNumber}>
-                    <td
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontWeight: 700,
-                        fontSize: "0.8125rem",
-                      }}
-                    >
-                      <Link
-                        to={`/complaints/${c.complaintNumber || c.id}`}
-                        style={{ color: "var(--primary-600)", textDecoration: "none" }}
-                        title="Inspect Ticket Details"
-                      >
-                        {c.complaintNumber}
-                      </Link>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.title}</div>
-                      <div
+                {filteredComplaints.map((c) => {
+                  const key = `${c.category?.toUpperCase()}::${c.location?.trim().toLowerCase()}`;
+                  const cluster = duplicateClusters.get(key) || [];
+                  const isDuplicate = cluster.length > 1;
+
+                  return (
+                    <tr key={c.id || c.complaintNumber}>
+                      <td
                         style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-muted)",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          marginTop: "2px",
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontWeight: 700,
+                          fontSize: "0.8125rem",
                         }}
                       >
-                        <MapPin size={12} style={{ color: "var(--primary-600)" }} />
-                        <span>{c.location || "Thane Municipal Area"}</span>
-                      </div>
-                    </td>
+                        <Link
+                          to={`/complaints/${c.complaintNumber || c.id}`}
+                          style={{ color: "var(--primary-600)", textDecoration: "none" }}
+                          title="Inspect Ticket Details"
+                        >
+                          {c.complaintNumber}
+                        </Link>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.title}</span>
+                          {isDuplicate && (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                fontSize: "0.6875rem",
+                                fontWeight: 600,
+                                color: "#b45309",
+                                backgroundColor: "#fef3c7",
+                                border: "1px solid #fde68a",
+                                padding: "1px 6px",
+                                borderRadius: "var(--radius-xs)",
+                              }}
+                              title={`Duplicate Area Warning: ${cluster.length} complaints submitted for ${c.category} in ${c.location}`}
+                            >
+                              <AlertTriangle size={11} />
+                              <span>Duplicate Issue ({cluster.length} at same location)</span>
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "var(--text-muted)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            marginTop: "2px",
+                          }}
+                        >
+                          <MapPin size={12} style={{ color: "var(--primary-600)" }} />
+                          <span>{c.location || "Thane Municipal Area"}</span>
+                        </div>
+                      </td>
                     <td>
                       <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
                         {c.department ? c.department.replace(/_/g, " ") : "Public Works"}
@@ -467,7 +506,8 @@ export function AdminDashboard() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>

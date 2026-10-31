@@ -51,9 +51,16 @@ public class ComplaintDuplicateDetectionService {
         double distanceMeters = distanceMeters(draft, existing);
         double geographicSimilarity = Double.isFinite(distanceMeters) && distanceMeters <= locationRadiusMeters
                 ? 1 - distanceMeters / locationRadiusMeters : 0;
-        double score = textSimilarity * 0.55 + locationSimilarity * 0.30 + geographicSimilarity * 0.15;
+        double score = textSimilarity * 0.50 + locationSimilarity * 0.35 + geographicSimilarity * 0.15;
         boolean locationCorroborates = locationSimilarity >= 0.15 || geographicSimilarity > 0;
-        if (textSimilarity < 0.25 || !locationCorroborates) score = 0;
+        boolean strongLocationMatch = geographicSimilarity > 0.60 || locationSimilarity >= 0.50;
+
+        if (strongLocationMatch) {
+            // Strong location match in same category: boost score so identical civic issues at the same spot are detected
+            score = Math.max(score, 0.45 + textSimilarity * 0.35);
+        } else if (textSimilarity < 0.20 || !locationCorroborates) {
+            score = 0;
+        }
         return new Suggestion(existing.getComplaintNumber(), existing.getTitle(), existing.getLocation(),
                 existing.getStatus(), existing.getCreatedAt(), Math.round(score * 100) / 100.0);
     }
