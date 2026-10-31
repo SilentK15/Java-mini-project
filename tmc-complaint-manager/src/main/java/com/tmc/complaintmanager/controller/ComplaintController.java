@@ -130,6 +130,17 @@ public class ComplaintController {
         return toResponse(complaint, user);
     }
 
+    public ComplaintResponse getComplaintById(Long id, AppUser user) {
+        Complaint complaint = complaintService.getComplaintById(id);
+        boolean isAdmin = user.getRole() == UserRole.ADMIN;
+        boolean isAssignedStaff = isDepartmentStaffFor(user, complaint);
+        boolean isOwner = user.getRole() == UserRole.CITIZEN && user.getEmail().equalsIgnoreCase(complaint.getSubmittedBy());
+        if (!isAdmin && !isAssignedStaff && !isOwner) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this complaint");
+        }
+        return toResponse(complaint, user);
+    }
+
     @GetMapping("/{id}/image")
     public ResponseEntity<Resource> getComplaintImage(@PathVariable Long id,
                                                        @AuthenticationPrincipal AppUser user) {

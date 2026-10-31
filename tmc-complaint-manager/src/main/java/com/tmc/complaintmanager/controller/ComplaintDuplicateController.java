@@ -28,7 +28,7 @@ public class ComplaintDuplicateController {
     }
 
     @PostMapping("/possible-duplicates")
-    public List<ComplaintDuplicateDetectionService.Suggestion> possibleDuplicates(@RequestBody DuplicateCheckRequest request) {
+    public DuplicateCheckResult possibleDuplicates(@RequestBody DuplicateCheckRequest request) {
         String category = request.category() != null ? request.category().trim().toUpperCase(java.util.Locale.ROOT) : "OTHER";
         String title = request.title() != null ? request.title().trim() : "";
         String description = request.description() != null ? request.description().trim() : title;
@@ -41,7 +41,9 @@ public class ComplaintDuplicateController {
         draft.setLocation(location);
         draft.setLatitude(request.latitude());
         draft.setLongitude(request.longitude());
-        return duplicateDetection.findPossibleDuplicates(draft);
+
+        List<ComplaintDuplicateDetectionService.Suggestion> duplicates = duplicateDetection.findPossibleDuplicates(draft);
+        return new DuplicateCheckResult(!duplicates.isEmpty(), duplicates);
     }
 
     public record DuplicateCheckRequest(
@@ -50,5 +52,15 @@ public class ComplaintDuplicateController {
             String category,
             String location,
             Double latitude,
-            Double longitude) {}
+            Double longitude) {
+        public DuplicateCheckRequest(String title, String description, String category, String location) {
+            this(title, description, category, location, null, null);
+        }
+    }
+
+    public record DuplicateCheckResult(boolean possibleMatch, List<ComplaintDuplicateDetectionService.Suggestion> duplicates) {
+        public DuplicateCheckResult(boolean possibleMatch) {
+            this(possibleMatch, List.of());
+        }
+    }
 }

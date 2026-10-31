@@ -52,5 +52,9 @@ public class ComplaintClassificationController {
             String description,
             String location,
             String text
-    ) {}
+    ) {
+        public ClassifyRequest(String title, String description, String location) {
+            this(title, description, location, null);
+        }
+    }
 }
