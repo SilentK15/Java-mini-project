@@ -119,8 +119,8 @@ public class ComplaintController {
     }
 
     @GetMapping("/{id}")
-    public ComplaintResponse getComplaintById(@PathVariable Long id, @AuthenticationPrincipal AppUser user) {
-        Complaint complaint = complaintService.getComplaintById(id);
+    public ComplaintResponse getComplaintById(@PathVariable String id, @AuthenticationPrincipal AppUser user) {
+        Complaint complaint = complaintService.getComplaintByIdOrNumber(id);
         boolean isAdmin = user.getRole() == UserRole.ADMIN;
         boolean isAssignedStaff = isDepartmentStaffFor(user, complaint);
         boolean isOwner = user.getRole() == UserRole.CITIZEN && user.getEmail().equalsIgnoreCase(complaint.getSubmittedBy());
@@ -133,7 +133,7 @@ public class ComplaintController {
     @GetMapping("/{id}/image")
     public ResponseEntity<Resource> getComplaintImage(@PathVariable Long id,
                                                        @AuthenticationPrincipal AppUser user) {
-        Complaint complaint = complaintService.getComplaintById(id);
+        Complaint complaint = complaintService.getComplaintByIdOrNumber(id);
         assertCanAccess(complaint, user);
         String storageKey = complaint.getImageUrl();
         java.nio.file.Path path = imageStorage.resolve(storageKey);
@@ -148,7 +148,7 @@ public class ComplaintController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'FIELD_STAFF', 'DEPARTMENT_OFFICER', 'SUPERVISOR')")
     public ComplaintResponse addResolutionEvidence(@PathVariable Long id, @RequestParam MultipartFile image,
                                                     @AuthenticationPrincipal AppUser user) {
-        Complaint complaint = complaintService.getComplaintById(id);
+        Complaint complaint = complaintService.getComplaintByIdOrNumber(id);
         if (user.getRole().isDepartmentEmployee() && !isDepartmentStaffFor(user, complaint)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only add evidence for your department");
         }
@@ -170,7 +170,7 @@ public class ComplaintController {
     @GetMapping("/{id}/resolution-image")
     public ResponseEntity<Resource> getResolutionImage(@PathVariable Long id,
                                                         @AuthenticationPrincipal AppUser user) {
-        Complaint complaint = complaintService.getComplaintById(id);
+        Complaint complaint = complaintService.getComplaintByIdOrNumber(id);
         assertCanAccess(complaint, user);
         if (user.getRole() == UserRole.CITIZEN && !List.of("RESOLVED", "REOPEN_REQUESTED").contains(complaint.getStatus())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Resolution evidence is available after resolution");
@@ -187,7 +187,7 @@ public class ComplaintController {
     @GetMapping("/{id}/history")
     public List<StatusHistoryResponse> getComplaintHistory(@PathVariable Long id,
                                                             @AuthenticationPrincipal AppUser user) {
-        Complaint complaint = complaintService.getComplaintById(id);
+        Complaint complaint = complaintService.getComplaintByIdOrNumber(id);
         assertCanAccess(complaint, user);
         return complaintService.getStatusHistory(id).stream().map(event -> new StatusHistoryResponse(
                 event.getId(), event.getPreviousStatus(), event.getNewStatus(), event.getReason(),
@@ -215,7 +215,7 @@ public class ComplaintController {
     public ComplaintResponse updateStatus(@PathVariable Long id, @RequestParam String status,
                                   @RequestParam(required = false) String reason,
                                   @AuthenticationPrincipal AppUser user) {
-        Complaint complaint = complaintService.getComplaintById(id);
+        Complaint complaint = complaintService.getComplaintByIdOrNumber(id);
         if (user.getRole().isDepartmentEmployee() && !isDepartmentStaffFor(user, complaint)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only update complaints for your department");
         }

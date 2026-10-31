@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 public class ComplaintService {
@@ -173,6 +174,22 @@ public class ComplaintService {
     public Complaint getComplaintById(Long id) {
         return complaintRepository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint not found"));
+    }
+
+    public Complaint getComplaintByIdOrNumber(String idOrNumber) {
+        if (idOrNumber == null || idOrNumber.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint not found");
+        }
+        String trimmed = idOrNumber.trim();
+        if (trimmed.matches("^\\d+$")) {
+            try {
+                Long id = Long.parseLong(trimmed);
+                Optional<Complaint> byId = complaintRepository.findById(id);
+                if (byId.isPresent()) return byId.get();
+            } catch (NumberFormatException ignored) {}
+        }
+        return complaintRepository.findByComplaintNumberIgnoreCase(trimmed).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint not found: " + trimmed));
     }
 
     @Transactional
