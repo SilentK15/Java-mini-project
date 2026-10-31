@@ -60,11 +60,19 @@ export const checkDuplicates = async ({ category, description, location }) => {
   });
 };
 
-export const classifyComplaint = async (text) => {
+export const classifyComplaint = async (input) => {
+  const body = typeof input === "string"
+    ? { title: input, description: input, text: input, location: "Thane" }
+    : {
+        title: input.title || "",
+        description: input.description || "",
+        location: input.location || "Thane",
+        text: input.text || `${input.title || ""} ${input.description || ""}`.trim(),
+      };
   return apiJsonRequest(`${API_URL}/classify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify(body),
   });
 };
 

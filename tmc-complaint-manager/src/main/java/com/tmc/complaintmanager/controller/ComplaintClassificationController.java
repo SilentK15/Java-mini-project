@@ -28,26 +28,29 @@ public class ComplaintClassificationController {
     }
 
     @PostMapping("/classify")
-    public ComplaintClassificationService.Result classify(@Valid @RequestBody ClassifyRequest request) {
+    public ComplaintClassificationService.Result classify(@RequestBody ClassifyRequest request) {
+        String title = request.title() != null && !request.title().isBlank()
+                ? request.title().trim()
+                : (request.text() != null ? request.text().trim() : "Civic Issue");
+        String description = request.description() != null && !request.description().isBlank()
+                ? request.description().trim()
+                : (request.text() != null ? request.text().trim() : title);
+        String location = request.location() != null && !request.location().isBlank()
+                ? request.location().trim()
+                : "Thane";
+
         ComplaintClassificationProvider.Input input = new ComplaintClassificationProvider.Input(
-                request.title().trim(),
-                request.description().trim(),
-                request.location().trim()
+                title.length() > 150 ? title.substring(0, 150) : title,
+                description.length() > 2000 ? description.substring(0, 2000) : description,
+                location.length() > 255 ? location.substring(0, 255) : location
         );
         return classificationService.recommend(input);
     }
 
     public record ClassifyRequest(
-            @NotBlank(message = "Title is required")
-            @Size(max = 150, message = "Title must be 150 characters or fewer")
             String title,
-
-            @NotBlank(message = "Description is required")
-            @Size(max = 2000, message = "Description must be 2000 characters or fewer")
             String description,
-
-            @NotBlank(message = "Location is required")
-            @Size(max = 255, message = "Location must be 255 characters or fewer")
-            String location
+            String location,
+            String text
     ) {}
 }

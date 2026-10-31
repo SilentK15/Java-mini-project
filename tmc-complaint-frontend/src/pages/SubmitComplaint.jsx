@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { useToast } from "../hooks/useToast.js";
@@ -63,6 +63,7 @@ export function SubmitComplaint() {
 
   const [suggestedCategory, setSuggestedCategory] = useState(null);
   const [classifying, setClassifying] = useState(false);
+  const [userChangedCategory, setUserChangedCategory] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -145,7 +146,8 @@ export function SubmitComplaint() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleCategoryChange = (newCategory) => {
+  const handleCategoryChange = (newCategory, fromUser = true) => {
+    if (fromUser) setUserChangedCategory(true);
     const autoPriority = getPriorityForCategory(newCategory);
     setForm((prev) => ({
       ...prev,
@@ -154,21 +156,38 @@ export function SubmitComplaint() {
     }));
   };
 
-  const handleAutoClassify = async () => {
-    const text = `${form.title} ${form.description}`.trim();
-    if (text.length < 5) return;
+  const handleAutoClassify = useCallback(async (titleText = form.title, descText = form.description) => {
+    const text = `${titleText || ""} ${descText || ""}`.trim();
+    if (text.length < 3) return;
     setClassifying(true);
     try {
-      const res = await classifyComplaint(text);
+      const res = await classifyComplaint({
+        title: titleText || "Civic Complaint",
+        description: descText || titleText,
+        location: form.location || "Thane",
+        text,
+      });
       if (res?.category) {
         setSuggestedCategory(res.category);
+        if (!userChangedCategory) {
+          handleCategoryChange(res.category, false);
+        }
       }
     } catch {
       // Ignore classification errors
     } finally {
       setClassifying(false);
     }
-  };
+  }, [form.location, form.title, form.description, userChangedCategory]);
+
+  useEffect(() => {
+    const text = `${form.title} ${form.description}`.trim();
+    if (text.length < 3) return;
+    const timer = setTimeout(() => {
+      handleAutoClassify(form.title, form.description);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.title, form.description, handleAutoClassify]);
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -393,19 +412,26 @@ export function SubmitComplaint() {
                       gap: "6px",
                       fontSize: "0.75rem",
                       backgroundColor: "var(--primary-50)",
+                      color: "var(--primary-800)",
+                      border: "1px solid var(--primary-200)",
                       padding: "2px 8px",
                       borderRadius: "var(--radius-sm)",
                     }}
                   >
-                    <span>Suggested: <strong>{suggestedCategory}</strong></span>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      style={{ height: "22px", padding: "0 6px", fontSize: "0.6875rem" }}
-                      onClick={() => handleCategoryChange(suggestedCategory)}
-                    >
-                      Apply
-                    </button>
+                    <Sparkles size={12} style={{ color: "var(--primary-600)" }} />
+                    <span>
+                      Suggested: <strong>{CATEGORIES.find((c) => c.value === suggestedCategory)?.label || suggestedCategory}</strong>
+                    </span>
+                    {form.category !== suggestedCategory && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ height: "20px", padding: "0 6px", fontSize: "0.6875rem", marginLeft: "4px" }}
+                        onClick={() => handleCategoryChange(suggestedCategory, false)}
+                      >
+                        Apply
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
