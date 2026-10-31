@@ -76,6 +76,18 @@ public class AdminStaffController {
         return staffView(saved);
     }
 
+    @PostMapping("/staff/{id}/enable")
+    @Transactional
+    public StaffAccountResponse enableStaffAlias(@PathVariable Long id, @AuthenticationPrincipal AppUser admin) {
+        return setStaffActive(id, new ActiveRequest(true), admin);
+    }
+
+    @PostMapping("/staff/{id}/disable")
+    @Transactional
+    public StaffAccountResponse disableStaffAlias(@PathVariable Long id, @AuthenticationPrincipal AppUser admin) {
+        return setStaffActive(id, new ActiveRequest(false), admin);
+    }
+
     @PutMapping("/staff/{id}/department")
     @Transactional
     public StaffAccountResponse setStaffDepartment(@PathVariable Long id,

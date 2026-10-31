@@ -77,13 +77,14 @@ export function StaffManagement() {
   };
 
   const handleToggleStatus = async (staff) => {
-    const nextState = !staff.enabled;
+    const isCurrentlyActive = staff.active !== undefined ? staff.active : Boolean(staff.enabled);
+    const nextState = !isCurrentlyActive;
     try {
       await updateStaffStatus(staff.id, nextState);
-      success(`Staff account ${nextState ? "enabled" : "disabled"}.`);
+      success(`Staff account ${nextState ? "activated" : "deactivated"} successfully.`);
       loadData();
     } catch (err) {
-      toastError(err.message || "Failed to change staff status.");
+      toastError(err.message || "Failed to update staff status.");
     }
   };
 
@@ -220,53 +221,58 @@ export function StaffManagement() {
             <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>No staff accounts provisioned yet.</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxHeight: "380px", overflowY: "auto" }}>
-              {staffList.map((s) => (
-                <div
-                  key={s.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 14px",
-                    backgroundColor: "var(--bg-subtle)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-subtle)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        backgroundColor: "var(--primary-100)",
-                        color: "var(--primary-700)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "0.8125rem",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {(s.name || "U").charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{s.name}</div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                        {s.email} &bull; {s.department.replace("_", " ")}
+              {staffList.map((s) => {
+                const isActive = s.active !== undefined ? s.active : Boolean(s.enabled);
+                return (
+                  <div
+                    key={s.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "10px 14px",
+                      backgroundColor: "var(--bg-subtle)",
+                      borderRadius: "var(--radius-md)",
+                      border: "1px solid var(--border-subtle)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div
+                        style={{
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "50%",
+                          backgroundColor: isActive ? "var(--primary-100)" : "var(--neutral-200)",
+                          color: isActive ? "var(--primary-700)" : "var(--text-muted)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.8125rem",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {(s.name || "U").charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+                          {s.name} {!isActive && <span style={{ fontSize: "0.75rem", color: "var(--danger-600)", marginLeft: "4px" }}>(Disabled)</span>}
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                          {s.email} &bull; {s.department?.replace("_", " ")}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <button
-                    onClick={() => handleToggleStatus(s)}
-                    className={`btn btn-sm ${s.enabled ? "btn-secondary" : "btn-primary"}`}
-                    style={{ height: "28px", padding: "0 10px", fontSize: "0.75rem" }}
-                  >
-                    {s.enabled ? "Disable" : "Enable"}
-                  </button>
-                </div>
-              ))}
+                    <button
+                      onClick={() => handleToggleStatus(s)}
+                      className={`btn btn-sm ${isActive ? "btn-secondary" : "btn-primary"}`}
+                      style={{ height: "28px", padding: "0 10px", fontSize: "0.75rem" }}
+                    >
+                      {isActive ? "Deactivate" : "Activate"}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

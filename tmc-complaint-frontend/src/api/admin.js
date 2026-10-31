@@ -17,9 +17,10 @@ export const createStaffAccount = async (data) => {
 };
 
 export const updateStaffStatus = async (staffId, enable) => {
-  const path = enable ? "enable" : "disable";
-  return apiJsonRequest(`${ADMIN_URL}/staff/${staffId}/${path}`, {
-    method: "POST",
+  return apiJsonRequest(`${ADMIN_URL}/staff/${staffId}/active`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ active: Boolean(enable) }),
   });
 };
 
